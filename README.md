@@ -135,10 +135,3 @@ O projeto foi desenvolvido com o objetivo de **facilitar o acesso à saúde púb
 
 Este é um projeto educacional desenvolvido durante o curso de programação. Sugestões e melhorias são sempre bem-vindas!
 
-## 📄 Licença
-
-Este projeto é desenvolvido para fins educacionais e de aprendizado.
-
----
-
-**Desenvolvido com ❤️ durante o curso Sujeito Programador**
