@@ -17,6 +17,8 @@ const texts = {
   // Botões
   viewOnMap: "Ver no mapa",
   call: "Ligar",
+  back: "Voltar",
+  home: "Início",
 
   // Mapa
   mapVisualization: "Visualização do Mapa",

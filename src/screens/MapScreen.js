@@ -317,6 +317,25 @@ export default function MapScreen({ navigation, route }) {
           </View>
         )}
       </View>
+
+      {/* Botões de navegação inferior */}
+      <View style={styles.bottomNavigation}>
+        <TouchableOpacity
+          style={styles.bottomButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color={COLORS.iconWhite} />
+          <Text style={styles.bottomButtonText}>{texts.back}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.bottomButton}
+          onPress={() => navigation.navigate("Home")}
+        >
+          <Ionicons name="home" size={24} color={COLORS.iconWhite} />
+          <Text style={styles.bottomButtonText}>{texts.home}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -485,5 +504,33 @@ const styles = StyleSheet.create({
   },
   legendText: {
     ...TEXT_STYLES.captionText,
+  },
+
+  // Navegação inferior
+  bottomNavigation: {
+    flexDirection: "row",
+    backgroundColor: COLORS.primary,
+    paddingVertical: Platform.OS === "ios" ? SPACING.lg + 4 : SPACING.lg,
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: Platform.OS === "ios" ? SPACING.xxxl : SPACING.lg,
+    ...SHADOWS.heavy,
+  },
+  bottomButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    marginHorizontal: SPACING.sm,
+    borderRadius: Platform.OS === "ios" ? 12 : 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  bottomButtonText: {
+    ...TEXT_STYLES.buttonText,
+    color: COLORS.iconWhite,
+    marginLeft: SPACING.sm,
+    fontSize: FONT_SIZES.base,
+    fontWeight: Platform.OS === "ios" ? "600" : "bold",
   },
 });
