@@ -6,199 +6,98 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
-
-const unidades = [
-  {
-    id: "1",
-    nome: "Centro de Saúde Ary Rodrigues",
-    distancia: 2.1,
-    latitude: -9.978540834183534,
-    longitude: -67.80469431534507,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-    },
-    disponibilidade: [
-      { remedio: "Dipirona", disponivel: true },
-      { remedio: "Amoxicilina", disponivel: true },
-      { remedio: "Losartana", disponivel: false },
-      { remedio: "Captopril", disponivel: true },
-      { remedio: "Cetoconazol", disponivel: false },
-    ],
-  },
-  {
-    id: "2",
-    nome: "Centro de Saúde Barral y Barral",
-    distancia: 3.5,
-    latitude: -9.9701,
-    longitude: -67.825,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-    },
-    disponibilidade: [
-      { remedio: "Paracetamol", disponivel: true },
-      { remedio: "Metformina", disponivel: true },
-      { remedio: "Omeprazol", disponivel: false },
-      { remedio: "Ibuprofeno", disponivel: true },
-      { remedio: "Prednisona", disponivel: false },
-    ],
-  },
-  {
-    id: "3",
-    nome: "Centro de Saúde Dr. Mário Maia",
-    distancia: 4.0,
-    latitude: -9.9512,
-    longitude: -67.8043,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-    },
-    disponibilidade: [
-      { remedio: "Ibuprofeno", disponivel: true },
-      { remedio: "Enalapril", disponivel: false },
-      { remedio: "Simeticona", disponivel: true },
-      { remedio: "Ranitidina", disponivel: true },
-      { remedio: "Loratadina", disponivel: false },
-    ],
-  },
-  {
-    id: "4",
-    nome: "Centro de Saúde Gentil Perdomo da Rocha",
-    distancia: 3.2,
-    latitude: -9.96,
-    longitude: -67.8087,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-    },
-    disponibilidade: [
-      { remedio: "Cetoconazol", disponivel: true },
-      { remedio: "Salbutamol", disponivel: true },
-      { remedio: "Dipirona", disponivel: false },
-      { remedio: "Fluconazol", disponivel: true },
-      { remedio: "Nistatina", disponivel: false },
-    ],
-  },
-  {
-    id: "5",
-    nome: "Centro de Saúde Souza Araújo",
-    distancia: 8.7,
-    latitude: -9.9,
-    longitude: -67.86,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-    },
-    disponibilidade: [
-      { remedio: "Azitromicina", disponivel: false },
-      { remedio: "Ibuprofeno", disponivel: true },
-      { remedio: "Hidroclorotiazida", disponivel: true },
-      { remedio: "Clonazepam", disponivel: false },
-      { remedio: "Simeticona", disponivel: true },
-    ],
-  },
-  {
-    id: "6",
-    nome: "Centro de Saúde Vila Ivonete",
-    distancia: 2.8,
-    latitude: -9.982,
-    longitude: -67.8305,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-    },
-    disponibilidade: [
-      { remedio: "Paracetamol", disponivel: true },
-      { remedio: "Loratadina", disponivel: false },
-      { remedio: "Clorfeniramina", disponivel: true },
-      { remedio: "Losartana", disponivel: true },
-      { remedio: "Sulfametoxazol + Trimetoprim", disponivel: false },
-    ],
-  },
-  {
-    id: "7",
-    nome: "USF Luana Freitas II",
-    distancia: 3.9,
-    latitude: -9.949358367090992,
-    longitude: -67.83444849295196,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-    },
-    disponibilidade: [
-      { remedio: "Omeprazol", disponivel: true },
-      { remedio: "Furosemida", disponivel: false },
-      { remedio: "Amoxicilina", disponivel: true },
-      { remedio: "Nimesulida", disponivel: false },
-      { remedio: "Cefalexina", disponivel: true },
-    ],
-  },
-  {
-    id: "8",
-    nome: "URAP Francisco Roney Rodrigues Meireles",
-    distancia: 5.5,
-    latitude: -9.98,
-    longitude: -67.845,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-      sabado: { inicio: "07:00", fim: "17:00" },
-      domingo: "fechado",
-    },
-    disponibilidade: [
-      { remedio: "Losartana", disponivel: true },
-      { remedio: "Dipirona", disponivel: false },
-      { remedio: "Ranitidina", disponivel: true },
-      { remedio: "Paracetamol", disponivel: false },
-      { remedio: "Benzetacil", disponivel: true },
-    ],
-  },
-  {
-    id: "9",
-    nome: "URAP Augusto Hidalgo de Lima",
-    distancia: 4.3,
-    latitude: -9.9705,
-    longitude: -67.8005,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-      sabado: { inicio: "07:00", fim: "17:00" },
-      domingo: "fechado",
-    },
-    disponibilidade: [
-      { remedio: "Metformina", disponivel: true },
-      { remedio: "Simeticona", disponivel: true },
-      { remedio: "Nistatina", disponivel: false },
-      { remedio: "Ibuprofeno", disponivel: true },
-      { remedio: "Prednisona", disponivel: false },
-    ],
-  },
-  {
-    id: "10",
-    nome: "USF Mocinha Magalhães",
-    distancia: 3.7,
-    latitude: -9.9607,
-    longitude: -67.8252,
-    horario: {
-      semana: { inicio: "07:00", fim: "17:00" },
-      sabado: { inicio: "07:00", fim: "17:00" },
-      domingo: "fechado",
-    },
-    disponibilidade: [
-      { remedio: "Salbutamol", disponivel: false },
-      { remedio: "Clorfeniramina", disponivel: true },
-      { remedio: "Azitromicina", disponivel: true },
-      { remedio: "Captopril", disponivel: true },
-      { remedio: "Nimesulida", disponivel: false },
-    ],
-  },
-];
+import texts from "../localization";
+import {
+  COLORS,
+  FONTS,
+  FONT_SIZES,
+  ICON_SIZES,
+  SPACING,
+  SHADOWS,
+  TEXT_STYLES,
+} from "../constants/theme";
+import { unidades } from "../data/unidades";
 
 export default function HomeScreen({ navigation }) {
   const [busca, setBusca] = useState("");
   const [userLocation, setUserLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
   const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
+  const [locationWatcher, setLocationWatcher] = useState(null);
 
   useEffect(() => {
     requestLocationPermission();
+    // Listener para mudanças de permissão de localização
+    setupLocationWatcher();
+
+    return () => {
+      // Limpar o watcher quando o componente for desmontado
+      if (locationWatcher) {
+        locationWatcher.remove();
+      }
+    };
   }, []);
+
+  const setupLocationWatcher = async () => {
+    try {
+      // Verificar se já tem permissão
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== "granted") {
+        return;
+      }
+
+      // Configurar watcher para mudanças de localização
+      const watcher = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000, // Verificar a cada 5 segundos apenas se houver mudança
+          distanceInterval: 10, // Só disparar se mover mais de 10 metros
+        },
+        (location) => {
+          // Localização obtida com sucesso - GPS está ativo
+          setUserLocation(location.coords);
+          if (locationStatus !== "ativa") {
+            setLocationStatus("ativa");
+          }
+        }
+      );
+
+      setLocationWatcher(watcher);
+
+      // Tentar obter localização inicial
+      getCurrentLocation();
+    } catch (error) {
+      // Se falhou, verificar status manualmente uma vez
+      checkLocationStatus();
+    }
+  };
+
+  const checkLocationStatus = async () => {
+    try {
+      const isLocationEnabled = await Location.hasServicesEnabledAsync();
+      const { status } = await Location.getForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        setLocationStatus("negada");
+        return;
+      }
+
+      if (!isLocationEnabled) {
+        setLocationStatus("inativa");
+        return;
+      }
+
+      // Se chegou aqui, GPS está ativo e permissão concedida
+      setLocationStatus("ativa");
+      getCurrentLocation();
+    } catch (error) {
+      // Silenciosamente define como inativo
+      setLocationStatus("inativa");
+    }
+  };
 
   const requestLocationPermission = async () => {
     try {
@@ -207,29 +106,42 @@ export default function HomeScreen({ navigation }) {
       setLocationPermission(status === "granted");
 
       if (status === "granted") {
-        getCurrentLocation();
+        setupLocationWatcher(); // Configurar watcher após obter permissão
       } else {
         setLocationStatus("negada");
       }
     } catch (error) {
-      console.error("Erro ao solicitar permissão de localização:", error);
       setLocationStatus("inativa");
     }
   };
 
   const getCurrentLocation = async () => {
     try {
-      setLocationStatus("verificando");
+      const isLocationEnabled = await Location.hasServicesEnabledAsync();
+
+      if (!isLocationEnabled) {
+        setLocationStatus("inativa");
+        // Parar o watcher se GPS foi desativado
+        if (locationWatcher) {
+          locationWatcher.remove();
+          setLocationWatcher(null);
+        }
+        return;
+      }
+
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        timeout: 15000,
+        timeout: 10000,
       });
       setUserLocation(location.coords);
       setLocationStatus("ativa");
     } catch (error) {
-      console.error("Erro ao obter localização:", error);
       setLocationStatus("inativa");
-      // Mantém as distâncias padrão se não conseguir obter a localização
+      // Parar o watcher se houver erro
+      if (locationWatcher) {
+        locationWatcher.remove();
+        setLocationWatcher(null);
+      }
     }
   };
 
@@ -238,32 +150,32 @@ export default function HomeScreen({ navigation }) {
     switch (locationStatus) {
       case "verificando":
         return {
-          text: "Verificando localização...",
-          icon: "location-outline",
-          color: "#fff",
+          text: texts.verifyingLocation,
+          icon: "radio-button-on",
+          color: "#21796A",
         };
       case "ativa":
         return {
-          text: "Localização ativa",
-          icon: "location",
+          text: texts.gpsActive,
+          icon: "checkmark-circle",
           color: "#4CAF50",
         };
       case "inativa":
         return {
-          text: "GPS desativado",
-          icon: "location-off",
+          text: texts.gpsDeactivated,
+          icon: "close-circle",
           color: "#FF9800",
         };
       case "negada":
         return {
-          text: "Permissão negada",
-          icon: "location-off-outline",
-          color: "#F44336",
+          text: texts.gpsDeactivated,
+          icon: "alert-circle",
+          color: "#FF9800",
         };
       default:
         return {
-          text: "Localização indisponível",
-          icon: "location-off",
+          text: texts.gpsDeactivated,
+          icon: "help-circle",
           color: "#888",
         };
     }
@@ -331,7 +243,7 @@ export default function HomeScreen({ navigation }) {
       .trim();
   };
 
-  // Filtra as unidades conforme o remédio pesquisado
+  // Filtra as unidades conforme o remédio pesquisado - apenas unidades com o remédio DISPONÍVEL
   const unidadesFiltradas =
     busca.trim().length === 0
       ? []
@@ -340,7 +252,8 @@ export default function HomeScreen({ navigation }) {
             const searchTerm = normalizeSearchString(busca);
             const info = u.disponibilidade.find((d) => {
               const medicineName = normalizeSearchString(d.remedio);
-              return medicineName.includes(searchTerm);
+              // Só inclui se o remédio existe E está disponível
+              return medicineName.includes(searchTerm) && d.disponivel === true;
             });
             if (info) {
               return {
@@ -358,11 +271,25 @@ export default function HomeScreen({ navigation }) {
           });
 
   const handleVerNoMapa = () => {
-    navigation.navigate("Mapa", {
-      unidades:
-        unidadesFiltradas.length > 0 ? unidadesFiltradas : unidadesComDistancia,
-      remedioFiltro: busca,
-    });
+    // Se não há busca, envia todas as unidades ordenadas por distância (usando GPS se disponível)
+    if (busca.trim().length === 0) {
+      const unidadesOrdenadas = [...unidadesComDistancia].sort((a, b) => {
+        return parseFloat(a.distancia) - parseFloat(b.distancia);
+      });
+
+      navigation.navigate("Mapa", {
+        unidades: unidadesOrdenadas,
+        remedioFiltro: "",
+        showAllUnits: true, // Flag para indicar que deve mostrar todas as unidades
+      });
+    } else {
+      // Se há busca, envia apenas as unidades filtradas
+      navigation.navigate("Mapa", {
+        unidades: unidadesFiltradas,
+        remedioFiltro: busca,
+        showAllUnits: false,
+      });
+    }
   };
 
   const handleCardPress = (unidade) => {
@@ -407,13 +334,13 @@ export default function HomeScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <Ionicons
-          name="medkit"
+          name="medical"
           size={40}
-          color="#fff"
+          color={COLORS.iconWhite}
           style={{ marginRight: 10 }}
         />
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>REMÉDIO JÁ</Text>
+          <Text style={styles.headerTitle}>{texts.appName}</Text>
           <View style={styles.locationIndicator}>
             <Ionicons
               name={getLocationStatus().icon}
@@ -432,29 +359,49 @@ export default function HomeScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Busca */}
-      <TextInput
-        style={styles.input}
-        placeholder="Digite o nome do remédio"
-        placeholderTextColor="#888"
-        value={busca}
-        onChangeText={handleBuscaChange}
-        maxLength={50}
-        autoCapitalize="words"
-        autoCorrect={false}
-        textContentType="none"
-        autoComplete="off"
-      />
+      {/* Busca com ícone */}
+      <View style={styles.searchContainer}>
+        <Ionicons
+          name="search"
+          size={ICON_SIZES.xl}
+          color={COLORS.textLight}
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder={texts.searchPlaceholder}
+          placeholderTextColor={COLORS.textLight}
+          value={busca}
+          onChangeText={handleBuscaChange}
+          maxLength={50}
+          autoCapitalize="words"
+          autoCorrect={false}
+          textContentType="none"
+          autoComplete="off"
+        />
+        {busca.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => setBusca("")}
+          >
+            <Ionicons
+              name="close-circle"
+              size={ICON_SIZES.lg}
+              color={COLORS.textLight}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Botão ver no mapa */}
       <TouchableOpacity style={styles.mapButton} onPress={handleVerNoMapa}>
         <Ionicons
           name="map-outline"
           size={18}
-          color="#21796A"
+          color={COLORS.iconPrimary}
           style={{ marginRight: 6 }}
         />
-        <Text style={styles.mapButtonText}>Ver no mapa</Text>
+        <Text style={styles.mapButtonText}>{texts.viewOnMap}</Text>
       </TouchableOpacity>
 
       {/* Lista de unidades filtradas */}
@@ -466,13 +413,33 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={{ alignItems: "center" }}
         ListEmptyComponent={
           busca.trim().length > 0 ? (
-            <Text style={{ color: "#888", marginTop: 40 }}>
-              Nenhuma unidade encontrada para "{busca}"
-            </Text>
+            <View style={styles.emptyStateContainer}>
+              <Ionicons
+                name="medical-outline"
+                size={60}
+                color={COLORS.textLight}
+                style={styles.emptyStateIcon}
+              />
+              <Text style={styles.emptyStateTitle}>
+                Nenhuma unidade encontrada
+              </Text>
+              <Text style={styles.emptyStateSubtitle}>
+                Não há unidades com "{busca}" disponível no momento
+              </Text>
+            </View>
           ) : (
-            <Text style={{ color: "#888", marginTop: 40 }}>
-              Pesquise um remédio
-            </Text>
+            <View style={styles.emptyStateContainer}>
+              <Ionicons
+                name="search-outline"
+                size={60}
+                color={COLORS.textLight}
+                style={styles.emptyStateIcon}
+              />
+              <Text style={styles.emptyStateTitle}>{texts.searchMedicine}</Text>
+              <Text style={styles.emptyStateSubtitle}>
+                Digite o nome do remédio para encontrar unidades que o possuem
+              </Text>
+            </View>
           )
         }
         renderItem={({ item }) => (
@@ -490,54 +457,31 @@ export default function HomeScreen({ navigation }) {
                 {item.nome}
               </Text>
 
-              <View style={styles.infoRow}>
+              <View style={styles.cardInfoRow}>
                 <Ionicons
-                  name="location-outline"
-                  size={14}
-                  color="#21796A"
-                  style={{ marginRight: 4 }}
+                  name="location"
+                  size={ICON_SIZES.sm}
+                  color={COLORS.iconLocation}
                 />
                 <Text style={styles.cardDistance}>{item.distancia} km</Text>
-                {item.isDistanciaReal && (
-                  <Ionicons
-                    name="navigate-circle"
-                    size={12}
-                    color="#21796A"
-                    style={{ marginLeft: 4 }}
-                  />
-                )}
-                {!item.isDistanciaReal && (
-                  <Text
-                    style={[
-                      styles.cardDistance,
-                      { fontSize: 11, color: "#888", marginLeft: 4 },
-                    ]}
-                  >
-                    (estimada)
-                  </Text>
-                )}
               </View>
 
-              <Text
-                style={[
-                  styles.cardDisponibilidade,
-                  { color: item.disponivel ? "#21796A" : "#B00020" },
-                ]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {item.remedio} {item.disponivel ? "disponível" : "indisponível"}
-              </Text>
-
-              <Text
-                style={styles.cardHorario}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {typeof item.horario === "object"
-                  ? `${item.horario.semana.inicio} às ${item.horario.semana.fim}`
-                  : item.horario}
-              </Text>
+              <View style={styles.cardInfoRow}>
+                <Ionicons
+                  name="time"
+                  size={ICON_SIZES.sm}
+                  color={COLORS.iconTime}
+                />
+                <Text
+                  style={styles.cardHorario}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {typeof item.horario === "object"
+                    ? `${item.horario.semana.inicio} ${texts.to} ${item.horario.semana.fim}`
+                    : item.horario}
+                </Text>
+              </View>
             </View>
           </TouchableOpacity>
         )}
@@ -547,127 +491,142 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  // Container principal
   container: {
     flex: 1,
-    backgroundColor: "#F6F8F9",
+    backgroundColor: COLORS.background,
     alignItems: "center",
     paddingTop: 60,
   },
+
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#21796A",
+    backgroundColor: COLORS.primary,
     width: "100%",
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    marginBottom: 18,
-    elevation: 4,
-    shadowColor: "#21796A",
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    paddingVertical: SPACING.xxxl,
+    paddingHorizontal: SPACING.xl,
+    borderBottomLeftRadius: SPACING.xxxl,
+    borderBottomRightRadius: SPACING.xxxl,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.heavy,
   },
   headerTitle: {
-    color: "#fff",
-    fontSize: 28,
-    fontWeight: "bold",
-    letterSpacing: 1,
+    ...TEXT_STYLES.headerTitle,
   },
   locationIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    marginTop: SPACING.xs,
   },
   locationText: {
-    color: "#fff",
-    fontSize: 12,
-    marginLeft: 4,
-    opacity: 0.9,
+    ...TEXT_STYLES.locationText,
+    marginLeft: SPACING.xs,
+  },
+
+  // Busca
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "85%",
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 18,
+    marginTop: -30,
+    marginBottom: SPACING.base,
+    ...SHADOWS.light,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.lg,
+  },
+  searchIcon: {
+    marginRight: SPACING.base,
   },
   input: {
-    width: "85%",
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 16,
-    fontSize: 16,
-    marginTop: -30,
-    marginBottom: 14,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+    flex: 1,
+    paddingVertical: SPACING.lg,
+    fontSize: FONT_SIZES.lg,
+    fontFamily: FONTS.regular,
+    color: COLORS.textPrimary,
   },
+  clearButton: {
+    padding: SPACING.xs,
+    marginLeft: SPACING.sm,
+  },
+
+  // Botão mapa
   mapButton: {
     borderWidth: 1,
-    borderColor: "#21796A",
+    borderColor: COLORS.primary,
     borderRadius: 22,
-    paddingVertical: 8,
-    paddingHorizontal: 32,
-    marginBottom: 18,
-    backgroundColor: "#fff",
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xxxl,
+    marginBottom: SPACING.lg,
+    backgroundColor: COLORS.cardBackground,
     elevation: 1,
     flexDirection: "row",
     alignItems: "center",
   },
   mapButtonText: {
-    color: "#21796A",
-    fontSize: 16,
-    fontWeight: "600",
-    letterSpacing: 0.5,
+    ...TEXT_STYLES.buttonText,
   },
+
+  // Cards das unidades
   card: {
-    backgroundColor: "#fff",
-    width: "90%",
-    height: 130,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 18,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    backgroundColor: COLORS.cardBackground,
+    width: 350,
+    height: 100,
+    borderRadius: SPACING.base,
+    padding: SPACING.lg,
+    marginBottom: SPACING.base,
+    ...SHADOWS.light,
     borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderColor: COLORS.border,
   },
   cardContent: {
     flex: 1,
-    justifyContent: "space-between",
-    height: "100%",
   },
   cardTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#21796A",
-    lineHeight: 18,
-    height: 36,
-    textAlignVertical: "top",
+    ...TEXT_STYLES.cardTitle,
+    fontSize: FONT_SIZES.lg,
+    marginBottom: SPACING.md,
   },
-  infoRow: {
+  cardInfoRow: {
     flexDirection: "row",
     alignItems: "center",
-    height: 20,
-    marginVertical: 2,
+    marginBottom: SPACING.xs,
   },
   cardDistance: {
-    fontSize: 13,
-    color: "#21796A",
-    fontWeight: "500",
-  },
-  cardDisponibilidade: {
-    fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 16,
-    height: 16,
-    textAlignVertical: "center",
+    ...TEXT_STYLES.distanceText,
+    fontSize: FONT_SIZES.base,
+    color: COLORS.textSecondary,
+    marginLeft: SPACING.xs,
   },
   cardHorario: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "400",
-    lineHeight: 14,
-    height: 14,
-    textAlignVertical: "center",
+    ...TEXT_STYLES.timeText,
+    marginLeft: SPACING.xs,
+  },
+
+  // Estado vazio
+  emptyStateContainer: {
+    alignItems: "center",
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.xxxl,
+    marginTop: SPACING.xl,
+  },
+  emptyStateIcon: {
+    marginBottom: SPACING.lg,
+    opacity: 0.6,
+  },
+  emptyStateTitle: {
+    ...TEXT_STYLES.sectionTitle,
+    fontSize: FONT_SIZES.xl,
+    textAlign: "center",
+    marginBottom: SPACING.md,
+  },
+  emptyStateSubtitle: {
+    ...TEXT_STYLES.descriptionText,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

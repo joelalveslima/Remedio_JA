@@ -7,84 +7,138 @@ import {
   Dimensions,
   FlatList,
   Linking,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import {
+  COLORS,
+  FONTS,
+  FONT_SIZES,
+  SPACING,
+  SHADOWS,
+  TEXT_STYLES,
+} from "../constants/theme";
 
 const { width, height } = Dimensions.get("window");
 
 export default function MapScreen({ navigation, route }) {
-  const { unidades, remedioFiltro } = route.params;
+  const { unidades, remedioFiltro, showAllUnits = false } = route.params;
   const [userLocation, setUserLocation] = useState(null);
-  const [locationPermission, setLocationPermission] = useState(null);
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
+  const [locationWatcher, setLocationWatcher] = useState(null);
 
   useEffect(() => {
     requestLocationPermission();
+    setupLocationWatcher();
+
+    return () => {
+      // Limpar o watcher quando o componente for desmontado
+      if (locationWatcher) {
+        locationWatcher.remove();
+      }
+    };
   }, []);
+
+  const setupLocationWatcher = async () => {
+    try {
+      // Verificar se já tem permissão
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== "granted") {
+        return;
+      }
+
+      // Configurar watcher para mudanças de localização
+      const watcher = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000, // Verificar a cada 5 segundos apenas se houver mudança
+          distanceInterval: 10, // Só disparar se mover mais de 10 metros
+        },
+        (location) => {
+          // Localização obtida com sucesso - GPS está ativo
+          setUserLocation(location.coords);
+          if (locationStatus !== "ativa") {
+            setLocationStatus("ativa");
+          }
+        }
+      );
+
+      setLocationWatcher(watcher);
+
+      // Tentar obter localização inicial
+      getCurrentLocation();
+    } catch (error) {
+      // Se falhou, verificar status manualmente uma vez
+      checkLocationStatus();
+    }
+  };
+
+  const checkLocationStatus = async () => {
+    try {
+      const isLocationEnabled = await Location.hasServicesEnabledAsync();
+      const { status } = await Location.getForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        setLocationStatus("negada");
+        return;
+      }
+
+      if (!isLocationEnabled) {
+        setLocationStatus("inativa");
+        return;
+      }
+
+      // Se chegou aqui, GPS está ativo e permissão concedida
+      setLocationStatus("ativa");
+      getCurrentLocation();
+    } catch (error) {
+      // Silenciosamente define como inativo
+      setLocationStatus("inativa");
+    }
+  };
 
   const requestLocationPermission = async () => {
     try {
+      setLocationStatus("verificando");
       const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(status === "granted");
 
-      if (status !== "granted") {
-        Alert.alert(
-          "Permissão Negada",
-          "Precisamos da sua localização para mostrar as unidades mais próximas.",
-          [
-            { text: "Cancelar", style: "cancel" },
-            { text: "Tentar Novamente", onPress: requestLocationPermission },
-          ]
-        );
-        return;
+      if (status === "granted") {
+        setupLocationWatcher(); // Configurar watcher após obter permissão
+      } else {
+        setLocationStatus("negada");
       }
     } catch (error) {
-      console.error("Erro ao solicitar permissão de localização:", error);
+      setLocationStatus("inativa");
     }
   };
 
   const getCurrentLocation = async () => {
-    if (!locationPermission) {
-      Alert.alert(
-        "Permissão Necessária",
-        "Permita o acesso à localização para usar esta funcionalidade."
-      );
-      return;
-    }
-
-    setIsLoadingLocation(true);
     try {
+      const isLocationEnabled = await Location.hasServicesEnabledAsync();
+
+      if (!isLocationEnabled) {
+        setLocationStatus("inativa");
+        // Parar o watcher se GPS foi desativado
+        if (locationWatcher) {
+          locationWatcher.remove();
+          setLocationWatcher(null);
+        }
+        return;
+      }
+
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
+        accuracy: Location.Accuracy.Balanced,
         timeout: 10000,
       });
-
       setUserLocation(location.coords);
-
-      //   Alert.alert(
-      //     "Localização Encontrada!",
-      //     `Latitude: ${location.coords.latitude.toFixed(
-      //       6
-      //     )}\nLongitude: ${location.coords.longitude.toFixed(6)}`,
-      //     [
-      //       { text: "OK" },
-      //       {
-      //         text: "Ver no Mapa",
-      //         onPress: () => openUserLocationInMaps(location.coords),
-      //       },
-      //     ]
-      //   );
+      setLocationStatus("ativa");
     } catch (error) {
-      Alert.alert(
-        "Erro de Localização",
-        "Não foi possível obter sua localização. Verifique se o GPS está ativado.",
-        [{ text: "OK" }]
-      );
-      console.error("Erro ao obter localização:", error);
-    } finally {
-      setIsLoadingLocation(false);
+      setLocationStatus("inativa");
+      // Parar o watcher se houver erro
+      if (locationWatcher) {
+        locationWatcher.remove();
+        setLocationWatcher(null);
+      }
     }
   };
 
@@ -142,7 +196,7 @@ export default function MapScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           style={{ marginRight: 16 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="chevron-back" size={24} color={COLORS.iconWhite} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {remedioFiltro ? `Mapa - ${remedioFiltro}` : "Todas as Unidades"}
@@ -152,36 +206,42 @@ export default function MapScreen({ navigation, route }) {
       {/* Simulação do Mapa com Lista */}
       <View style={styles.mapContainer}>
         <View style={styles.mapPlaceholder}>
-          <Ionicons name="map-outline" size={80} color="#21796A" />
+          <Ionicons name="globe" size={80} color={COLORS.iconPrimary} />
           <Text style={styles.mapPlaceholderText}>Visualização do Mapa</Text>
           <Text style={styles.mapSubText}>
             Toque em uma unidade para ver no Google Maps
           </Text>
 
-          {/* Botão de Localização */}
-          <TouchableOpacity
-            style={styles.locationButton}
-            onPress={getCurrentLocation}
-            disabled={isLoadingLocation}
-          >
-            <Ionicons
-              name={isLoadingLocation ? "refresh" : "location"}
-              size={20}
-              color="#fff"
-              style={
-                isLoadingLocation ? { transform: [{ rotate: "45deg" }] } : {}
-              }
-            />
-            <Text style={styles.locationButtonText}>
-              {isLoadingLocation ? "Localizando..." : "Minha Localização"}
-            </Text>
-          </TouchableOpacity>
+          {/* Botão de Localização - só mostra se não for visualização de todas as unidades */}
+          {!showAllUnits && (
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={getCurrentLocation}
+              disabled={isLoadingLocation}
+            >
+              <Ionicons
+                name={isLoadingLocation ? "refresh" : "locate"}
+                size={20}
+                color={COLORS.iconWhite}
+                style={
+                  isLoadingLocation ? { transform: [{ rotate: "45deg" }] } : {}
+                }
+              />
+              <Text style={styles.locationButtonText}>
+                {isLoadingLocation ? "Localizando..." : "Minha Localização"}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-          {userLocation && (
+          {userLocation && !showAllUnits && (
             <View style={styles.userLocationInfo}>
-              <Ionicons name="checkmark-circle" size={16} color="#21796A" />
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={COLORS.iconPrimary}
+              />
               <Text style={styles.userLocationText}>
-                Localização obtida! Unidades ordenadas por distância.
+                Ordenadas por distância
               </Text>
             </View>
           )}
@@ -200,31 +260,50 @@ export default function MapScreen({ navigation, route }) {
               >
                 <Text style={styles.unitName}>{item.nome}</Text>
                 <View style={styles.distanceContainer}>
+                  <Ionicons
+                    name="location"
+                    size={14}
+                    color={COLORS.iconLocation}
+                  />
                   <Text style={styles.unitDistance}>
                     {item.distanciaCalculada
                       ? `${item.distanciaCalculada} km`
-                      : item.distancia}
+                      : `${item.distancia} km`}
                   </Text>
-                  {item.distanciaCalculada && (
-                    <Text style={styles.calculatedLabel}>(calculado)</Text>
-                  )}
                 </View>
-                <Text
-                  style={[
-                    styles.unitStatus,
-                    { color: item.disponivel ? "#21796A" : "#B00020" },
-                  ]}
-                >
-                  {item.remedio ? `${item.remedio} - ` : ""}
-                  {item.disponivel ? "Disponível" : "Indisponível"}
-                </Text>
+
+                {/* Mostra horário sempre, status só se não for showAllUnits */}
+                <View style={styles.scheduleContainer}>
+                  <Ionicons name="time" size={14} color={COLORS.iconTime} />
+                  <Text style={styles.unitSchedule}>
+                    {typeof item.horario === "object"
+                      ? `${item.horario.semana.inicio} às ${item.horario.semana.fim}`
+                      : item.horario}
+                  </Text>
+                </View>
+
+                {!showAllUnits && (
+                  <Text
+                    style={[
+                      styles.unitStatus,
+                      { color: item.disponivel ? "#21796A" : "#B00020" },
+                    ]}
+                  >
+                    {item.remedio ? `${item.remedio} - ` : ""}
+                    {item.disponivel ? "Disponível" : "Indisponível"}
+                  </Text>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.mapButton}
                 onPress={() => handleOpenMaps(item)}
               >
-                <Ionicons name="map" size={20} color="#21796A" />
+                <Ionicons
+                  name="navigate"
+                  size={20}
+                  color={COLORS.iconPrimary}
+                />
               </TouchableOpacity>
             </View>
           )}
@@ -239,192 +318,175 @@ export default function MapScreen({ navigation, route }) {
           {unidadesComDistancia.length !== 1 ? "s" : ""}
           {userLocation && " (ordenadas por distância)"}
         </Text>
-        <View style={styles.legendContainer}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: "#21796A" }]} />
-            <Text style={styles.legendText}>Disponível</Text>
+
+        {/* Legenda só aparece quando há busca por remédio específico */}
+        {!showAllUnits && (
+          <View style={styles.legendContainer}>
+            <View style={styles.legendItem}>
+              <View
+                style={[styles.legendDot, { backgroundColor: "#21796A" }]}
+              />
+              <Text style={styles.legendText}>Disponível</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View
+                style={[styles.legendDot, { backgroundColor: "#B00020" }]}
+              />
+              <Text style={styles.legendText}>Indisponível</Text>
+            </View>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: "#B00020" }]} />
-            <Text style={styles.legendText}>Indisponível</Text>
-          </View>
-        </View>
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Container principal
   container: {
     flex: 1,
-    backgroundColor: "#F6F8F9",
+    backgroundColor: COLORS.background,
   },
+
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#21796A",
+    backgroundColor: COLORS.primary,
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
-    elevation: 4,
-    shadowColor: "#21796A",
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    paddingBottom: SPACING.xl,
+    paddingHorizontal: SPACING.xl,
+    ...SHADOWS.heavy,
   },
   headerTitle: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "bold",
+    ...TEXT_STYLES.headerTitle,
     flex: 1,
   },
-  map: {
-    flex: 1,
-    width: width,
-    height: height,
-  },
+
+  // Mapa
   mapContainer: {
     flex: 1,
-    backgroundColor: "#F0F9F7",
+    backgroundColor: COLORS.primaryLight,
   },
   mapPlaceholder: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.cardBackground,
     paddingVertical: 30,
     alignItems: "center",
     marginBottom: 10,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    ...SHADOWS.light,
   },
   mapPlaceholderText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#21796A",
+    ...TEXT_STYLES.sectionTitle,
     marginTop: 10,
   },
   mapSubText: {
-    fontSize: 14,
-    color: "#666",
+    ...TEXT_STYLES.descriptionText,
     marginTop: 5,
     textAlign: "center",
   },
-  unitsList: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  unitCard: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  unitInfo: {
-    flex: 1,
-  },
-  unitName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#21796A",
-    marginBottom: 4,
-  },
-  unitDistance: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 2,
-  },
-  unitStatus: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  mapButton: {
-    backgroundColor: "#F0F9F7",
-    padding: 12,
-    borderRadius: 10,
-    marginLeft: 12,
-  },
+
+  // Botões e localização
   locationButton: {
-    backgroundColor: "#21796A",
+    backgroundColor: COLORS.primary,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xl,
     borderRadius: 25,
     marginTop: 15,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    ...SHADOWS.light,
   },
   locationButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    marginLeft: 8,
-    fontSize: 14,
+    ...TEXT_STYLES.buttonText,
+    color: COLORS.iconWhite,
+    marginLeft: SPACING.sm,
   },
   userLocationInfo: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 10,
-    backgroundColor: "#F0F9F7",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    backgroundColor: COLORS.primaryLight,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
     borderRadius: 15,
   },
   userLocationText: {
-    color: "#21796A",
-    fontSize: 12,
+    ...TEXT_STYLES.captionText,
+    color: COLORS.primary,
     marginLeft: 6,
     fontWeight: "500",
   },
+
+  // Lista de unidades
+  unitsList: {
+    flex: 1,
+    paddingHorizontal: SPACING.lg,
+  },
+  unitCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 15,
+    padding: SPACING.lg,
+    marginBottom: SPACING.base,
+    flexDirection: "row",
+    alignItems: "center",
+    ...SHADOWS.light,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  unitInfo: {
+    flex: 1,
+  },
+  unitName: {
+    ...TEXT_STYLES.cardTitle,
+    marginBottom: 4,
+  },
+  unitDistance: {
+    ...TEXT_STYLES.captionText,
+    marginLeft: 4,
+  },
+  unitSchedule: {
+    ...TEXT_STYLES.captionText,
+    marginLeft: 4,
+    fontStyle: "italic",
+  },
+  unitStatus: {
+    ...TEXT_STYLES.captionText,
+    fontWeight: "500",
+  },
+
+  // Containers de informações
   distanceContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  calculatedLabel: {
-    fontSize: 12,
-    color: "#21796A",
-    marginLeft: 6,
-    fontStyle: "italic",
-  },
-  markerContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
+  scheduleContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
+    marginBottom: 4,
   },
+
+  // Botão do mapa
+  mapButton: {
+    backgroundColor: COLORS.primaryLight,
+    padding: SPACING.md,
+    borderRadius: 10,
+    marginLeft: SPACING.md,
+  },
+
+  // Footer
   footer: {
-    backgroundColor: "#fff",
-    padding: 16,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: -2 },
+    backgroundColor: COLORS.cardBackground,
+    padding: SPACING.lg,
+    ...SHADOWS.light,
   },
   footerText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#21796A",
+    ...TEXT_STYLES.cardTitle,
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: SPACING.sm,
   },
+
+  // Legenda
   legendContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -433,7 +495,7 @@ const styles = StyleSheet.create({
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 12,
+    marginHorizontal: SPACING.md,
   },
   legendDot: {
     width: 12,
@@ -442,7 +504,6 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   legendText: {
-    fontSize: 14,
-    color: "#666",
+    ...TEXT_STYLES.captionText,
   },
 });

@@ -9,15 +9,33 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import texts from "../localization";
+import {
+  COLORS,
+  FONTS,
+  FONT_SIZES,
+  SPACING,
+  SHADOWS,
+  TEXT_STYLES,
+} from "../constants/theme";
 
 export default function DetailScreen({ navigation, route }) {
   const { unidade } = route.params;
   const [userLocation, setUserLocation] = useState(null);
   const [distanciaCalculada, setDistanciaCalculada] = useState(null);
   const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
+  const [locationWatcher, setLocationWatcher] = useState(null);
 
   useEffect(() => {
     getCurrentLocation();
+    setupLocationWatcher();
+
+    return () => {
+      // Limpar o watcher quando o componente for desmontado
+      if (locationWatcher) {
+        locationWatcher.remove();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -31,6 +49,60 @@ export default function DetailScreen({ navigation, route }) {
       setDistanciaCalculada(distancia);
     }
   }, [userLocation]);
+  const setupLocationWatcher = async () => {
+    try {
+      // Verificar se já tem permissão
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== "granted") {
+        return;
+      }
+
+      // Configurar watcher para mudanças de localização
+      const watcher = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 5000, // Verificar a cada 5 segundos apenas se houver mudança
+          distanceInterval: 10, // Só disparar se mover mais de 10 metros
+        },
+        (location) => {
+          // Localização obtida com sucesso - GPS está ativo
+          setUserLocation(location.coords);
+          if (locationStatus !== "ativa") {
+            setLocationStatus("ativa");
+          }
+        }
+      );
+
+      setLocationWatcher(watcher);
+    } catch (error) {
+      // Se falhou, verificar status manualmente uma vez
+      checkLocationStatus();
+    }
+  };
+
+  const checkLocationStatus = async () => {
+    try {
+      const isLocationEnabled = await Location.hasServicesEnabledAsync();
+      const { status } = await Location.getForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        setLocationStatus("negada");
+        return;
+      }
+
+      if (!isLocationEnabled) {
+        setLocationStatus("inativa");
+        return;
+      }
+
+      // Se chegou aqui, GPS está ativo e permissão concedida
+      setLocationStatus("ativa");
+      getCurrentLocation();
+    } catch (error) {
+      // Silenciosamente define como inativo
+      setLocationStatus("inativa");
+    }
+  };
 
   const getCurrentLocation = async () => {
     try {
@@ -38,35 +110,39 @@ export default function DetailScreen({ navigation, route }) {
       const { status } = await Location.requestForegroundPermissionsAsync();
 
       if (status === "granted") {
+        const isLocationEnabled = await Location.hasServicesEnabledAsync();
+
+        if (!isLocationEnabled) {
+          setLocationStatus("inativa");
+          // Parar o watcher se GPS foi desativado
+          if (locationWatcher) {
+            locationWatcher.remove();
+            setLocationWatcher(null);
+          }
+          return;
+        }
+
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
           timeout: 15000,
         });
         setUserLocation(location.coords);
         setLocationStatus("ativa");
+
+        // Configurar watcher após obter localização inicial com sucesso
+        if (!locationWatcher) {
+          setupLocationWatcher();
+        }
       } else {
         setLocationStatus("negada");
       }
     } catch (error) {
-      console.error("Erro ao obter localização:", error);
       setLocationStatus("inativa");
-      // Mantém a distância padrão se não conseguir obter a localização
-    }
-  };
-
-  // Função para obter status da localização
-  const getLocationStatus = () => {
-    switch (locationStatus) {
-      case "verificando":
-        return "(verificando...)";
-      case "ativa":
-        return "(calculado)";
-      case "inativa":
-        return "(GPS desativado)";
-      case "negada":
-        return "(permissão negada)";
-      default:
-        return "(estimado)";
+      // Parar o watcher se houver erro
+      if (locationWatcher) {
+        locationWatcher.remove();
+        setLocationWatcher(null);
+      }
     }
   };
 
@@ -120,7 +196,7 @@ export default function DetailScreen({ navigation, route }) {
             { color: item.disponivel ? "#21796A" : "#B00020" },
           ]}
         >
-          {item.disponivel ? "Disponível" : "Indisponível"}
+          {item.disponivel ? texts.available : texts.unavailable}
         </Text>
       </View>
       <Ionicons
@@ -134,8 +210,8 @@ export default function DetailScreen({ navigation, route }) {
   // Função para renderizar o header da lista de medicamentos
   const renderMedicineHeader = () => (
     <Text style={styles.sectionTitle}>
-      <Ionicons name="medical-outline" size={20} color="#21796A" /> Remédios
-      Disponíveis
+      <Ionicons name="medical" size={20} color={COLORS.iconPrimary} />{" "}
+      {texts.medicines}
     </Text>
   );
 
@@ -147,18 +223,18 @@ export default function DetailScreen({ navigation, route }) {
         <Text style={styles.unitName}>{unidade.nome}</Text>
 
         <View style={styles.infoRow}>
-          <Ionicons name="location-outline" size={20} color="#21796A" />
+          <Ionicons name="location" size={20} color={COLORS.iconLocation} />
           <Text style={styles.infoText}>
             {distanciaCalculada !== null
-              ? `${distanciaCalculada} km ${getLocationStatus()}`
+              ? `${distanciaCalculada} km`
               : unidade.distanciaCalculada
-              ? `${unidade.distanciaCalculada} km (calculado)`
-              : `${unidade.distancia} km (estimado)`}
+              ? `${unidade.distanciaCalculada} km`
+              : `${unidade.distancia} km`}
           </Text>
         </View>
 
         <View style={styles.infoRow}>
-          <Ionicons name="time-outline" size={20} color="#21796A" />
+          <Ionicons name="time" size={20} color={COLORS.iconTime} />
           <Text style={styles.infoText}>
             {typeof unidade.horario === "object"
               ? `${unidade.horario.semana.inicio} às ${unidade.horario.semana.fim}`
@@ -171,13 +247,13 @@ export default function DetailScreen({ navigation, route }) {
             style={styles.actionButton}
             onPress={handleOpenMaps}
           >
-            <Ionicons name="map-outline" size={20} color="#21796A" />
-            <Text style={styles.actionButtonText}>Ver no Mapa</Text>
+            <Ionicons name="navigate" size={20} color={COLORS.iconPrimary} />
+            <Text style={styles.actionButtonText}>{texts.viewOnMap}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
-            <Ionicons name="call-outline" size={20} color="#21796A" />
-            <Text style={styles.actionButtonText}>Ligar</Text>
+            <Ionicons name="call" size={20} color={COLORS.iconPrimary} />
+            <Text style={styles.actionButtonText}>{texts.call}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -193,11 +269,11 @@ export default function DetailScreen({ navigation, route }) {
       <View style={styles.infoCard}>
         <Text style={styles.sectionTitle}>
           <Ionicons
-            name="information-circle-outline"
+            name="information-circle"
             size={20}
-            color="#21796A"
+            color={COLORS.iconPrimary}
           />{" "}
-          Informações Importantes
+          {texts.importantInfo}
         </Text>
 
         <Text style={styles.infoDescription}>
@@ -217,9 +293,9 @@ export default function DetailScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           style={{ marginRight: 16 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="chevron-back" size={24} color={COLORS.iconWhite} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalhes da Unidade</Text>
+        <Text style={styles.headerTitle}>{texts.unitDetails}</Text>
       </View>
 
       <FlatList
@@ -241,140 +317,137 @@ export default function DetailScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
+  // Container principal
   container: {
     flex: 1,
-    backgroundColor: "#F6F8F9",
+    backgroundColor: COLORS.background,
   },
+
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#21796A",
+    backgroundColor: COLORS.primary,
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
-    elevation: 4,
-    shadowColor: "#21796A",
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    paddingBottom: SPACING.xl,
+    paddingHorizontal: SPACING.xl,
+    ...SHADOWS.heavy,
   },
   headerTitle: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "bold",
+    ...TEXT_STYLES.headerTitle,
     flex: 1,
   },
+
+  // Conteúdo
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 20,
-    paddingBottom: 40, // Espaçamento extra para garantir que o footer seja visível
+    padding: SPACING.xl,
+    paddingBottom: 40,
   },
+
+  // Card principal
   mainCard: {
-    backgroundColor: "#fff",
-    borderRadius: 0,
-    padding: 24,
-    marginBottom: 16,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: SPACING.xl,
+    padding: SPACING.xl,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.light,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   unitName: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#21796A",
-    marginBottom: 16,
+    ...TEXT_STYLES.sectionTitle,
+    fontSize: FONT_SIZES.xxl,
     textAlign: "center",
+    marginBottom: SPACING.lg,
   },
+
+  // Informações
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: SPACING.md,
   },
   infoText: {
-    fontSize: 16,
-    color: "#333",
-    marginLeft: 8,
+    ...TEXT_STYLES.bodyText,
+    marginLeft: SPACING.sm,
     fontWeight: "500",
   },
+
+  // Botões de ação
   actionButtons: {
     flexDirection: "row",
-    marginTop: 20,
+    marginTop: SPACING.xl,
     justifyContent: "space-around",
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F9F7",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    backgroundColor: COLORS.cardBackground,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xl,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "#21796A",
+    borderColor: COLORS.primary,
   },
   actionButtonText: {
-    color: "#21796A",
-    fontWeight: "600",
-    marginLeft: 8,
+    ...TEXT_STYLES.buttonText,
+    marginLeft: SPACING.sm,
   },
+
+  // Card de medicamentos
   medicineCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: SPACING.xl,
+    padding: SPACING.xl,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.light,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#21796A",
-    marginBottom: 16,
+    ...TEXT_STYLES.sectionTitle,
+    marginBottom: SPACING.lg,
   },
+
+  // Lista de medicamentos
   medicineItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: COLORS.border,
   },
   medicineInfo: {
     flex: 1,
   },
   medicineName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    ...TEXT_STYLES.cardTitle,
+    color: COLORS.textPrimary,
   },
   medicineStatus: {
-    fontSize: 14,
-    fontWeight: "500",
+    ...TEXT_STYLES.captionText,
     marginTop: 2,
   },
-  infoCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 20,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-  },
+
+  // Footer
   footerContainer: {
-    marginTop: 16,
-    marginBottom: 20,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xl,
+  },
+  infoCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: SPACING.xl,
+    padding: SPACING.xl,
+    ...SHADOWS.light,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   infoDescription: {
-    fontSize: 14,
-    color: "#666",
+    ...TEXT_STYLES.descriptionText,
     lineHeight: 20,
   },
 });
