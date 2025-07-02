@@ -26,11 +26,12 @@ export const unidades = [
     ],
   },
   {
+    // -9.965002312938438, -67.8371291816943
     id: "2",
     nome: "Centro de Saúde Barral y Barral",
     distancia: 3.5,
-    latitude: -9.9701,
-    longitude: -67.825,
+    latitude: -9.965002312938438,
+    longitude: -67.8371291816943,
     horario: {
       semana: { inicio: "07:00", fim: "17:00" },
     },
@@ -43,11 +44,12 @@ export const unidades = [
     ],
   },
   {
+    //-9.981615835637475, -67.81630108216648
     id: "3",
     nome: "Centro de Saúde Dr. Mário Maia",
     distancia: 4.0,
-    latitude: -9.9512,
-    longitude: -67.8043,
+    latitude: -9.981615835637475,
+    longitude: -67.81630108216648,
     horario: {
       semana: { inicio: "07:00", fim: "17:00" },
     },
@@ -60,11 +62,12 @@ export const unidades = [
     ],
   },
   {
+    //-9.971986998783423, -67.83450658216645
     id: "4",
     nome: "Centro de Saúde Gentil Perdomo da Rocha",
     distancia: 3.2,
-    latitude: -9.96,
-    longitude: -67.8087,
+    latitude: -9.971986998783423,
+    longitude: -67.83450658216645,
     horario: {
       semana: { inicio: "07:00", fim: "17:00" },
     },
@@ -77,11 +80,12 @@ export const unidades = [
     ],
   },
   {
+    //-9.938217567063985, -67.83353902971976
     id: "5",
-    nome: "Centro de Saúde Souza Araújo",
+    nome: "USF Elpídio Moreira Souza",
     distancia: 8.7,
-    latitude: -9.9,
-    longitude: -67.86,
+    latitude: -9.938217567063985,
+    longitude: -67.83353902971976,
     horario: {
       semana: { inicio: "07:00", fim: "17:00" },
     },
@@ -94,11 +98,12 @@ export const unidades = [
     ],
   },
   {
+    // -9.950054079949172, -67.82424368278186
     id: "6",
     nome: "Centro de Saúde Vila Ivonete",
     distancia: 2.8,
-    latitude: -9.982,
-    longitude: -67.8305,
+    latitude: -9.950054079949172,
+    longitude: -67.82424368278186,
     horario: {
       semana: { inicio: "07:00", fim: "17:00" },
     },
@@ -128,15 +133,14 @@ export const unidades = [
     ],
   },
   {
+    //-9.933475273819187, -67.82562281074208
     id: "8",
     nome: "URAP Francisco Roney Rodrigues Meireles",
     distancia: 5.5,
-    latitude: -9.98,
-    longitude: -67.845,
+    latitude: -9.933475273819187,
+    longitude: -67.82562281074208,
     horario: {
       semana: { inicio: "07:00", fim: "17:00" },
-      sabado: { inicio: "07:00", fim: "17:00" },
-      domingo: "fechado",
     },
     disponibilidade: [
       { remedio: "Losartana", disponivel: true },
@@ -147,15 +151,14 @@ export const unidades = [
     ],
   },
   {
+    //-9.983468234491395, -67.82620559566028
     id: "9",
     nome: "URAP Augusto Hidalgo de Lima",
     distancia: 4.3,
-    latitude: -9.9705,
-    longitude: -67.8005,
+    latitude: -9.983468234491395,
+    longitude: -67.82620559566028,
     horario: {
       semana: { inicio: "07:00", fim: "17:00" },
-      sabado: { inicio: "07:00", fim: "17:00" },
-      domingo: "fechado",
     },
     disponibilidade: [
       { remedio: "Metformina", disponivel: true },
@@ -166,15 +169,14 @@ export const unidades = [
     ],
   },
   {
+    //-9.940890780427308, -67.8588830244957
     id: "10",
     nome: "USF Mocinha Magalhães",
     distancia: 3.7,
-    latitude: -9.9607,
-    longitude: -67.8252,
+    latitude: -9.940890780427308,
+    longitude: -67.8588830244957,
     horario: {
       semana: { inicio: "07:00", fim: "17:00" },
-      sabado: { inicio: "07:00", fim: "17:00" },
-      domingo: "fechado",
     },
     disponibilidade: [
       { remedio: "Salbutamol", disponivel: false },

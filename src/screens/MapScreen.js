@@ -4,22 +4,21 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Dimensions,
   FlatList,
   Linking,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import texts from "../localization";
 import {
   COLORS,
-  FONTS,
   FONT_SIZES,
   SPACING,
   SHADOWS,
   TEXT_STYLES,
 } from "../constants/theme";
-
-const { width, height } = Dimensions.get("window");
+import { calculateDistance } from "../utils/locationUtils";
 
 export default function MapScreen({ navigation, route }) {
   const { unidades, remedioFiltro, showAllUnits = false } = route.params;
@@ -142,26 +141,6 @@ export default function MapScreen({ navigation, route }) {
     }
   };
 
-  const openUserLocationInMaps = (coords) => {
-    const url = `https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`;
-    Linking.openURL(url);
-  };
-
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Raio da Terra em km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c;
-    return distance.toFixed(1);
-  };
-
   const unidadesComDistancia = userLocation
     ? unidades
         .map((unidade) => ({
@@ -206,11 +185,11 @@ export default function MapScreen({ navigation, route }) {
       {/* Simulação do Mapa com Lista */}
       <View style={styles.mapContainer}>
         <View style={styles.mapPlaceholder}>
-          <Ionicons name="globe" size={80} color={COLORS.iconPrimary} />
-          <Text style={styles.mapPlaceholderText}>Visualização do Mapa</Text>
-          <Text style={styles.mapSubText}>
-            Toque em uma unidade para ver no Google Maps
+          <Ionicons name="map" size={80} color={COLORS.iconPrimary} />
+          <Text style={styles.mapPlaceholderText}>
+            {texts.mapVisualization}
           </Text>
+          <Text style={styles.mapSubText}>{texts.mapSubText}</Text>
 
           {/* Botão de Localização - só mostra se não for visualização de todas as unidades */}
           {!showAllUnits && (
@@ -228,7 +207,7 @@ export default function MapScreen({ navigation, route }) {
                 }
               />
               <Text style={styles.locationButtonText}>
-                {isLoadingLocation ? "Localizando..." : "Minha Localização"}
+                {isLoadingLocation ? texts.locating : texts.myLocation}
               </Text>
             </TouchableOpacity>
           )}
@@ -241,7 +220,7 @@ export default function MapScreen({ navigation, route }) {
                 color={COLORS.iconPrimary}
               />
               <Text style={styles.userLocationText}>
-                Ordenadas por distância
+                {texts.orderedByDistance}
               </Text>
             </View>
           )}
@@ -290,7 +269,7 @@ export default function MapScreen({ navigation, route }) {
                     ]}
                   >
                     {item.remedio ? `${item.remedio} - ` : ""}
-                    {item.disponivel ? "Disponível" : "Indisponível"}
+                    {item.disponivel ? texts.available : texts.unavailable}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -313,10 +292,11 @@ export default function MapScreen({ navigation, route }) {
       {/* Info footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          {unidadesComDistancia.length} unidade
-          {unidadesComDistancia.length !== 1 ? "s" : ""} encontrada
-          {unidadesComDistancia.length !== 1 ? "s" : ""}
-          {userLocation && " (ordenadas por distância)"}
+          {unidadesComDistancia.length}{" "}
+          {unidadesComDistancia.length === 1
+            ? texts.unitSingular
+            : texts.unitPlural}
+          {userLocation && ` ${texts.orderedByDistanceFooter}`}
         </Text>
 
         {/* Legenda só aparece quando há busca por remédio específico */}
@@ -326,13 +306,13 @@ export default function MapScreen({ navigation, route }) {
               <View
                 style={[styles.legendDot, { backgroundColor: "#21796A" }]}
               />
-              <Text style={styles.legendText}>Disponível</Text>
+              <Text style={styles.legendText}>{texts.available}</Text>
             </View>
             <View style={styles.legendItem}>
               <View
                 style={[styles.legendDot, { backgroundColor: "#B00020" }]}
               />
-              <Text style={styles.legendText}>Indisponível</Text>
+              <Text style={styles.legendText}>{texts.unavailable}</Text>
             </View>
           </View>
         )}
@@ -353,7 +333,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.primary,
-    paddingTop: 50,
+    paddingTop: Platform.OS === "ios" ? 60 : 50,
     paddingBottom: SPACING.xl,
     paddingHorizontal: SPACING.xl,
     ...SHADOWS.heavy,

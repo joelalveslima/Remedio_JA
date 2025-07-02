@@ -6,18 +6,19 @@ import {
   TouchableOpacity,
   FlatList,
   Linking,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import texts from "../localization";
 import {
   COLORS,
-  FONTS,
   FONT_SIZES,
   SPACING,
   SHADOWS,
   TEXT_STYLES,
 } from "../constants/theme";
+import { calculateDistance } from "../utils/locationUtils";
 
 export default function DetailScreen({ navigation, route }) {
   const { unidade } = route.params;
@@ -146,35 +147,6 @@ export default function DetailScreen({ navigation, route }) {
     }
   };
 
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    try {
-      // Validação dos parâmetros
-      if (!lat1 || !lon1 || !lat2 || !lon2) {
-        return null;
-      }
-
-      const R = 6371; // Raio da Terra em km
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLon = ((lon2 - lon1) * Math.PI) / 180;
-
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((lat1 * Math.PI) / 180) *
-          Math.cos((lat2 * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distance = R * c;
-
-      // Retorna a distância formatada com 1 casa decimal
-      return parseFloat(distance.toFixed(1));
-    } catch (error) {
-      console.error("Erro ao calcular distância:", error);
-      return null;
-    }
-  };
-
   const handleOpenMaps = () => {
     const url = `https://www.google.com/maps/search/?api=1&query=${unidade.latitude},${unidade.longitude}`;
     Linking.openURL(url);
@@ -208,9 +180,11 @@ export default function DetailScreen({ navigation, route }) {
   );
 
   // Função para renderizar o header da lista de medicamentos
+  // Nome do Remdio disponivel
   const renderMedicineHeader = () => (
     <Text style={styles.sectionTitle}>
-      <Ionicons name="medical" size={20} color={COLORS.iconPrimary} />{" "}
+      <Ionicons name="medical" size={20} color={COLORS.iconPrimary} />
+      {""}
       {texts.medicines}
     </Text>
   );
@@ -328,7 +302,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.primary,
-    paddingTop: 50,
+    paddingTop: Platform.OS === "ios" ? 60 : 50,
     paddingBottom: SPACING.xl,
     paddingHorizontal: SPACING.xl,
     ...SHADOWS.heavy,
@@ -400,16 +374,17 @@ const styles = StyleSheet.create({
   // Card de medicamentos
   medicineCard: {
     backgroundColor: COLORS.cardBackground,
-    borderRadius: SPACING.xl,
-    padding: SPACING.xl,
+    borderRadius: Platform.OS === "ios" ? SPACING.xl + 4 : SPACING.xl,
+    padding: Platform.OS === "ios" ? SPACING.xl + 4 : SPACING.xl,
     marginBottom: SPACING.lg,
     ...SHADOWS.light,
-    borderWidth: 1,
+    borderWidth: Platform.OS === "ios" ? 0 : 1,
     borderColor: COLORS.border,
   },
   sectionTitle: {
     ...TEXT_STYLES.sectionTitle,
     marginBottom: SPACING.lg,
+    fontWeight: Platform.OS === "ios" ? "600" : "bold",
   },
 
   // Lista de medicamentos

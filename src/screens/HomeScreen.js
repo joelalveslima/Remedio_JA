@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
@@ -20,11 +21,11 @@ import {
   TEXT_STYLES,
 } from "../constants/theme";
 import { unidades } from "../data/unidades";
+import { calculateDistance } from "../utils/locationUtils";
 
 export default function HomeScreen({ navigation }) {
   const [busca, setBusca] = useState("");
   const [userLocation, setUserLocation] = useState(null);
-  const [locationPermission, setLocationPermission] = useState(null);
   const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
   const [locationWatcher, setLocationWatcher] = useState(null);
 
@@ -103,7 +104,6 @@ export default function HomeScreen({ navigation }) {
     try {
       setLocationStatus("verificando");
       const { status } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(status === "granted");
 
       if (status === "granted") {
         setupLocationWatcher(); // Configurar watcher após obter permissão
@@ -178,35 +178,6 @@ export default function HomeScreen({ navigation }) {
           icon: "help-circle",
           color: "#888",
         };
-    }
-  };
-
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    try {
-      // Validação dos parâmetros
-      if (!lat1 || !lon1 || !lat2 || !lon2) {
-        return null;
-      }
-
-      const R = 6371; // Raio da Terra em km
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLon = ((lon2 - lon1) * Math.PI) / 180;
-
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((lat1 * Math.PI) / 180) *
-          Math.cos((lat2 * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distance = R * c;
-
-      // Retorna a distância formatada com 1 casa decimal
-      return parseFloat(distance.toFixed(1));
-    } catch (error) {
-      console.error("Erro ao calcular distância:", error);
-      return null;
     }
   };
 
@@ -420,11 +391,9 @@ export default function HomeScreen({ navigation }) {
                 color={COLORS.textLight}
                 style={styles.emptyStateIcon}
               />
-              <Text style={styles.emptyStateTitle}>
-                Nenhuma unidade encontrada
-              </Text>
+              <Text style={styles.emptyStateTitle}>{texts.noUnitsFound}</Text>
               <Text style={styles.emptyStateSubtitle}>
-                Não há unidades com "{busca}" disponível no momento
+                {texts.noUnitsFoundSubtitle.replace("{search}", busca)}
               </Text>
             </View>
           ) : (
@@ -437,7 +406,7 @@ export default function HomeScreen({ navigation }) {
               />
               <Text style={styles.emptyStateTitle}>{texts.searchMedicine}</Text>
               <Text style={styles.emptyStateSubtitle}>
-                Digite o nome do remédio para encontrar unidades que o possuem
+                {texts.searchInstructions}
               </Text>
             </View>
           )
@@ -496,7 +465,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     alignItems: "center",
-    paddingTop: 60,
+    paddingTop: Platform.OS === "ios" ? 80 : 60,
   },
 
   // Header
@@ -531,11 +500,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "85%",
     backgroundColor: COLORS.cardBackground,
-    borderRadius: 18,
+    borderRadius: Platform.OS === "ios" ? 22 : 18,
     marginTop: -30,
     marginBottom: SPACING.base,
     ...SHADOWS.light,
-    borderWidth: 1,
+    borderWidth: Platform.OS === "ios" ? 0 : 1,
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.lg,
   },
@@ -544,10 +513,11 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    paddingVertical: SPACING.lg,
+    paddingVertical: Platform.OS === "ios" ? SPACING.lg + 2 : SPACING.lg,
     fontSize: FONT_SIZES.lg,
-    fontFamily: FONTS.regular,
+    fontFamily: Platform.OS === "ios" ? FONTS.semiBold : FONTS.regular,
     color: COLORS.textPrimary,
+    fontWeight: Platform.OS === "ios" ? "500" : "400",
   },
   clearButton: {
     padding: SPACING.xs,
@@ -576,11 +546,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.cardBackground,
     width: 350,
     height: 100,
-    borderRadius: SPACING.base,
+    borderRadius: Platform.OS === "ios" ? SPACING.lg : SPACING.base,
     padding: SPACING.lg,
     marginBottom: SPACING.base,
     ...SHADOWS.light,
-    borderWidth: 1,
+    borderWidth: Platform.OS === "ios" ? 0 : 1,
     borderColor: COLORS.border,
   },
   cardContent: {
@@ -590,6 +560,7 @@ const styles = StyleSheet.create({
     ...TEXT_STYLES.cardTitle,
     fontSize: FONT_SIZES.lg,
     marginBottom: SPACING.md,
+    fontWeight: Platform.OS === "ios" ? "600" : "bold",
   },
   cardInfoRow: {
     flexDirection: "row",

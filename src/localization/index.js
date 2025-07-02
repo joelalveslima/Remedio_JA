@@ -18,16 +18,29 @@ const texts = {
   viewOnMap: "Ver no mapa",
   call: "Ligar",
 
+  // Mapa
+  mapVisualization: "Visualização do Mapa",
+  mapSubText: "Toque em uma unidade para ver no Google Maps",
+  myLocation: "Minha Localização",
+  locating: "Localizando...",
+  orderedByDistance: "Ordenadas por distância",
+
   // Telas
   unitDetails: "Detalhes da Unidade",
   medicines: "Remédios Disponíveis",
   importantInfo: "Informações Importantes",
 
   // Resultados
-  noUnitsFound: "Nenhuma unidade encontrada para",
-  available: "disponível",
-  unavailable: "indisponível",
+  noUnitsFound: "Nenhuma unidade encontrada",
+  noUnitsFoundSubtitle: 'Não há unidades com "{search}" disponível no momento',
+  searchInstructions:
+    "Digite o nome do remédio para encontrar unidades que o possuem",
+  available: "Disponível",
+  unavailable: "Indisponível",
   estimated: "estimada",
+  unitSingular: "unidade encontrada",
+  unitPlural: "unidades encontradas",
+  orderedByDistanceFooter: "(ordenadas por distância)",
 
   // Horários
   to: "às",

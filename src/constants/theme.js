@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 // Tema centralizado do app - modifique aqui para atualizar todo o app
 export const COLORS = {
   // Cores principais
@@ -91,23 +93,23 @@ export const SHADOWS = {
   light: {
     elevation: 2,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: Platform.OS === "ios" ? 0.08 : 0.1,
+    shadowRadius: Platform.OS === "ios" ? 6 : 4,
+    shadowOffset: { width: 0, height: Platform.OS === "ios" ? 3 : 2 },
   },
   medium: {
     elevation: 3,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: Platform.OS === "ios" ? 0.12 : 0.1,
+    shadowRadius: Platform.OS === "ios" ? 10 : 8,
+    shadowOffset: { width: 0, height: Platform.OS === "ios" ? 4 : 2 },
   },
   heavy: {
     elevation: 4,
     shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: Platform.OS === "ios" ? 0.15 : 0.12,
+    shadowRadius: Platform.OS === "ios" ? 12 : 10,
+    shadowOffset: { width: 0, height: Platform.OS === "ios" ? 6 : 4 },
   },
 };
 
