@@ -14,6 +14,7 @@ export default function DetailScreen({ navigation, route }) {
   const { unidade } = route.params;
   const [userLocation, setUserLocation] = useState(null);
   const [distanciaCalculada, setDistanciaCalculada] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
 
   useEffect(() => {
     getCurrentLocation();
@@ -33,6 +34,7 @@ export default function DetailScreen({ navigation, route }) {
 
   const getCurrentLocation = async () => {
     try {
+      setLocationStatus("verificando");
       const { status } = await Location.requestForegroundPermissionsAsync();
 
       if (status === "granted") {
@@ -41,10 +43,30 @@ export default function DetailScreen({ navigation, route }) {
           timeout: 15000,
         });
         setUserLocation(location.coords);
+        setLocationStatus("ativa");
+      } else {
+        setLocationStatus("negada");
       }
     } catch (error) {
       console.error("Erro ao obter localização:", error);
+      setLocationStatus("inativa");
       // Mantém a distância padrão se não conseguir obter a localização
+    }
+  };
+
+  // Função para obter status da localização
+  const getLocationStatus = () => {
+    switch (locationStatus) {
+      case "verificando":
+        return "(verificando...)";
+      case "ativa":
+        return "(calculado)";
+      case "inativa":
+        return "(GPS desativado)";
+      case "negada":
+        return "(permissão negada)";
+      default:
+        return "(estimado)";
     }
   };
 
@@ -128,9 +150,9 @@ export default function DetailScreen({ navigation, route }) {
           <Ionicons name="location-outline" size={20} color="#21796A" />
           <Text style={styles.infoText}>
             {distanciaCalculada !== null
-              ? `${distanciaCalculada} km (calculado)`
+              ? `${distanciaCalculada} km ${getLocationStatus()}`
               : unidade.distanciaCalculada
-              ? `${unidade.distanciaCalculada} km`
+              ? `${unidade.distanciaCalculada} km (calculado)`
               : `${unidade.distancia} km (estimado)`}
           </Text>
         </View>

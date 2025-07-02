@@ -194,6 +194,7 @@ export default function HomeScreen({ navigation }) {
   const [busca, setBusca] = useState("");
   const [userLocation, setUserLocation] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
 
   useEffect(() => {
     requestLocationPermission();
@@ -201,27 +202,70 @@ export default function HomeScreen({ navigation }) {
 
   const requestLocationPermission = async () => {
     try {
+      setLocationStatus("verificando");
       const { status } = await Location.requestForegroundPermissionsAsync();
       setLocationPermission(status === "granted");
 
       if (status === "granted") {
         getCurrentLocation();
+      } else {
+        setLocationStatus("negada");
       }
     } catch (error) {
       console.error("Erro ao solicitar permissão de localização:", error);
+      setLocationStatus("inativa");
     }
   };
 
   const getCurrentLocation = async () => {
     try {
+      setLocationStatus("verificando");
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
         timeout: 15000,
       });
       setUserLocation(location.coords);
+      setLocationStatus("ativa");
     } catch (error) {
       console.error("Erro ao obter localização:", error);
+      setLocationStatus("inativa");
       // Mantém as distâncias padrão se não conseguir obter a localização
+    }
+  };
+
+  // Função para obter status da localização
+  const getLocationStatus = () => {
+    switch (locationStatus) {
+      case "verificando":
+        return {
+          text: "Verificando localização...",
+          icon: "location-outline",
+          color: "#fff",
+        };
+      case "ativa":
+        return {
+          text: "Localização ativa",
+          icon: "location",
+          color: "#4CAF50",
+        };
+      case "inativa":
+        return {
+          text: "GPS desativado",
+          icon: "location-off",
+          color: "#FF9800",
+        };
+      case "negada":
+        return {
+          text: "Permissão negada",
+          icon: "location-off-outline",
+          color: "#F44336",
+        };
+      default:
+        return {
+          text: "Localização indisponível",
+          icon: "location-off",
+          color: "#888",
+        };
     }
   };
 
@@ -370,12 +414,21 @@ export default function HomeScreen({ navigation }) {
         />
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>REMÉDIO JÁ</Text>
-          {userLocation && (
-            <View style={styles.locationIndicator}>
-              <Ionicons name="location" size={12} color="#fff" />
-              <Text style={styles.locationText}>Localização ativa</Text>
-            </View>
-          )}
+          <View style={styles.locationIndicator}>
+            <Ionicons
+              name={getLocationStatus().icon}
+              size={12}
+              color={getLocationStatus().color}
+            />
+            <Text
+              style={[
+                styles.locationText,
+                { color: getLocationStatus().color },
+              ]}
+            >
+              {getLocationStatus().text}
+            </Text>
+          </View>
         </View>
       </View>
 
