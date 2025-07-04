@@ -58,7 +58,7 @@ const texts = {
     "Erro ao solicitar permissão de localização - usando distâncias estimadas",
 
   // Feed de notícias
-  healthNews: "Campanhas de Saúde",
+  healthNews: "Feeds de Notícias",
   newsSubtitle: "Últimas informações sobre saúde pública",
   readMore: "Ler mais",
   newsCategory: "Categoria",

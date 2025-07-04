@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 // Tema centralizado do app - modifique aqui para atualizar todo o app
 export const COLORS = {
   // Cores principais
-  primary: "#21796A",
+  primary: "#009900",
   primaryLight: "#F0F9F7",
 
   // Cores de status
