@@ -364,16 +364,31 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
 
-      {/* Botão ver no mapa */}
-      <TouchableOpacity style={styles.mapButton} onPress={handleVerNoMapa}>
-        <Ionicons
-          name="map-outline"
-          size={18}
-          color={COLORS.iconPrimary}
-          style={{ marginRight: 6 }}
-        />
-        <Text style={styles.mapButtonText}>{texts.viewOnMap}</Text>
-      </TouchableOpacity>
+      {/* Botões de ação */}
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity style={styles.mapButton} onPress={handleVerNoMapa}>
+          <Ionicons
+            name="map-outline"
+            size={18}
+            color={COLORS.iconPrimary}
+            style={{ marginRight: 6 }}
+          />
+          <Text style={styles.mapButtonText}>{texts.viewOnMap}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.newsButton}
+          onPress={() => navigation.navigate("Noticias")}
+        >
+          <Ionicons
+            name="newspaper-outline"
+            size={18}
+            color={COLORS.iconWhite}
+            style={{ marginRight: 6 }}
+          />
+          <Text style={styles.newsButtonText}>{texts.healthNews}</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Lista de unidades filtradas */}
       <FlatList
@@ -524,21 +539,44 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.sm,
   },
 
-  // Botão mapa
+  // Botões de ação
+  actionButtonsContainer: {
+    flexDirection: "row",
+    marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.md,
+  },
   mapButton: {
+    flex: 1,
     borderWidth: 1,
     borderColor: COLORS.primary,
     borderRadius: 22,
     paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xxxl,
-    marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
     backgroundColor: COLORS.cardBackground,
     elevation: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
   },
   mapButtonText: {
     ...TEXT_STYLES.buttonText,
+  },
+  newsButton: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    borderRadius: 22,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOWS.light,
+  },
+  newsButtonText: {
+    ...TEXT_STYLES.buttonText,
+    color: COLORS.iconWhite,
+    fontWeight: Platform.OS === "ios" ? "600" : "bold",
   },
 
   // Cards das unidades

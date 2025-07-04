@@ -15,6 +15,7 @@ import { useEffect } from "react";
 import HomeScreen from "./src/screens/HomeScreen";
 import MapScreen from "./src/screens/MapScreen";
 import DetailScreen from "./src/screens/DetailScreen";
+import NewsScreen from "./src/screens/NewsScreen";
 
 // Previne que a splash screen seja escondida automaticamente
 SplashScreen.preventAutoHideAsync();
@@ -49,6 +50,7 @@ export default function App() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Mapa" component={MapScreen} />
         <Stack.Screen name="Detalhes" component={DetailScreen} />
+        <Stack.Screen name="Noticias" component={NewsScreen} />
       </Stack.Navigator>
       <StatusBar
         style="light"

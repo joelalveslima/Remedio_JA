@@ -56,6 +56,12 @@ const texts = {
     "Permissão de localização negada - usando distâncias estimadas",
   permissionError:
     "Erro ao solicitar permissão de localização - usando distâncias estimadas",
+
+  // Feed de notícias
+  healthNews: "Campanhas de Saúde",
+  newsSubtitle: "Últimas informações sobre saúde pública",
+  readMore: "Ler mais",
+  newsCategory: "Categoria",
 };
 
 export default texts;

@@ -267,7 +267,7 @@ export default function DetailScreen({ navigation, route }) {
           onPress={() => navigation.goBack()}
           style={{ marginRight: 16 }}
         >
-          <Ionicons name="chevron-back" size={24} color={COLORS.iconWhite} />
+          <Ionicons name="chevron-back" size={22} color={COLORS.iconWhite} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{texts.unitDetails}</Text>
       </View>
@@ -293,8 +293,7 @@ export default function DetailScreen({ navigation, route }) {
           style={styles.bottomButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color={COLORS.iconWhite} />
-          <Text style={styles.bottomButtonText}>{texts.back}</Text>
+          <Ionicons name="chevron-back" size={28} color={COLORS.iconWhite} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -302,7 +301,6 @@ export default function DetailScreen({ navigation, route }) {
           onPress={() => navigation.navigate("Home")}
         >
           <Ionicons name="home" size={24} color={COLORS.iconWhite} />
-          <Text style={styles.bottomButtonText}>{texts.home}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -449,27 +447,20 @@ const styles = StyleSheet.create({
   bottomNavigation: {
     flexDirection: "row",
     backgroundColor: COLORS.primary,
-    paddingVertical: Platform.OS === "ios" ? SPACING.lg + 4 : SPACING.lg,
-    paddingHorizontal: SPACING.xl,
-    paddingBottom: Platform.OS === "ios" ? SPACING.xxxl : SPACING.lg,
-    ...SHADOWS.heavy,
+    paddingVertical: Platform.OS === "ios" ? SPACING.md + 4 : SPACING.md + 2,
+    paddingHorizontal: SPACING.xxxl + 8,
+    paddingBottom: Platform.OS === "ios" ? SPACING.xl + 2 : SPACING.md + 2,
+    justifyContent: "space-around",
+    ...SHADOWS.medium,
   },
   bottomButton: {
-    flex: 1,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    marginHorizontal: SPACING.sm,
-    borderRadius: Platform.OS === "ios" ? 12 : 8,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-  },
-  bottomButtonText: {
-    ...TEXT_STYLES.buttonText,
-    color: COLORS.iconWhite,
-    marginLeft: SPACING.sm,
-    fontSize: FONT_SIZES.base,
-    fontWeight: Platform.OS === "ios" ? "600" : "bold",
+    paddingHorizontal: SPACING.md,
+    borderRadius: Platform.OS === "ios" ? 12 : 10,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    minWidth: 48,
+    minHeight: 48,
   },
 });
