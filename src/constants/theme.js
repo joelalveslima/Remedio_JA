@@ -36,7 +36,7 @@ export const COLORS = {
   unavailable: "#C62828", // Vermelho mais escuro
 
   // Cores do botão OCR
-  ocrButtonBackground: "#91ff00ff", // Cor laranja vibrante para mais visibilidade
+  ocrButtonBackground: "#2E7D32", // Cor laranja vibrante para mais visibilidade
   ocrButtonDisabled: "#999", // Cor quando desabilitado
   ocrButtonBorder: "rgba(255, 255, 255, 0.5)", // Borda mais visível
   ocrButtonIcon: "#fff", // Cor do ícone

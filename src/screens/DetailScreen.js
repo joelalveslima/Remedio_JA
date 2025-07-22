@@ -390,11 +390,11 @@ const styles = StyleSheet.create({
   // Card de medicamentos
   medicineCard: {
     backgroundColor: COLORS.cardBackground,
-    borderRadius: Platform.OS === "ios" ? SPACING.xl + 4 : SPACING.xl,
-    padding: Platform.OS === "ios" ? SPACING.xl + 4 : SPACING.xl,
+    borderRadius: SPACING.xl,
+    padding: SPACING.xl,
     marginBottom: SPACING.lg,
     ...SHADOWS.light,
-    borderWidth: Platform.OS === "ios" ? 0 : 1,
+    borderWidth: 1,
     borderColor: COLORS.border,
   },
   sectionTitle: {
@@ -446,9 +446,9 @@ const styles = StyleSheet.create({
   bottomNavigation: {
     flexDirection: "row",
     backgroundColor: COLORS.primary,
-    paddingVertical: Platform.OS === "ios" ? SPACING.sm + 2 : SPACING.sm, // Reduzido
+    paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.xxxl + 8,
-    paddingBottom: Platform.OS === "ios" ? SPACING.md : SPACING.sm, // Reduzido
+    paddingBottom: SPACING.sm,
     justifyContent: "space-around",
     ...SHADOWS.medium,
   },
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: SPACING.sm, // Reduzido de md para sm
     paddingHorizontal: SPACING.sm, // Reduzido de md para sm
-    borderRadius: Platform.OS === "ios" ? 12 : 10,
+    borderRadius: 10,
     backgroundColor: "rgba(255, 255, 255, 0.12)",
     minWidth: 44, // Reduzido de 48 para 44
     minHeight: 44, // Reduzido de 48 para 44
