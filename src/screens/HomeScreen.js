@@ -6,8 +6,10 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
-  Platform,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import texts from "../localization";
@@ -22,34 +24,61 @@ import {
 } from "../constants/theme";
 import { unidades } from "../data/unidades";
 import { calculateDistance } from "../utils/locationUtils";
+import { OCRUtils } from "../utils/ocrUtils";
+import { OCRDataManager } from "../utils/ocrDataManager";
 
 export default function HomeScreen({ navigation }) {
   const [busca, setBusca] = useState("");
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
   const [locationWatcher, setLocationWatcher] = useState(null);
+  const [isOCRProcessing, setIsOCRProcessing] = useState(false);
 
   useEffect(() => {
-    requestLocationPermission();
-    // Listener para mudanças de permissão de localização
-    setupLocationWatcher();
+    console.log("🚀 Inicializando HomeScreen...");
+    initializeLocation();
 
     return () => {
       // Limpar o watcher quando o componente for desmontado
       if (locationWatcher) {
+        console.log("🧹 Limpando watcher de localização...");
         locationWatcher.remove();
       }
     };
   }, []);
 
+  const initializeLocation = async () => {
+    try {
+      console.log("🔄 Inicializando sistema de localização...");
+
+      // Primeiro verificar se já temos permissão
+      const { status } = await Location.getForegroundPermissionsAsync();
+      console.log("🗺️ Status inicial da permissão:", status);
+
+      if (status === "granted") {
+        // Já temos permissão, configurar watcher diretamente
+        await setupLocationWatcher();
+      } else {
+        // Não temos permissão, solicitar
+        await requestLocationPermission();
+      }
+    } catch (error) {
+      console.error("❌ Erro na inicialização de localização:", error);
+      setLocationStatus("inativa");
+    }
+  };
+
   const setupLocationWatcher = async () => {
     try {
+      console.log("🔧 Configurando watcher de localização...");
       // Verificar se já tem permissão
       const { status } = await Location.getForegroundPermissionsAsync();
       if (status !== "granted") {
+        console.log("⚠️ Sem permissão para configurar watcher");
         return;
       }
 
+      console.log("✅ Permissão OK, criando watcher...");
       // Configurar watcher para mudanças de localização
       const watcher = await Location.watchPositionAsync(
         {
@@ -58,6 +87,7 @@ export default function HomeScreen({ navigation }) {
           distanceInterval: 10, // Só disparar se mover mais de 10 metros
         },
         (location) => {
+          console.log("📍 Nova localização obtida:", location.coords);
           // Localização obtida com sucesso - GPS está ativo
           setUserLocation(location.coords);
           if (locationStatus !== "ativa") {
@@ -67,10 +97,12 @@ export default function HomeScreen({ navigation }) {
       );
 
       setLocationWatcher(watcher);
+      console.log("✅ Watcher configurado com sucesso");
 
       // Tentar obter localização inicial
       getCurrentLocation();
     } catch (error) {
+      console.error("❌ Erro ao configurar watcher:", error);
       // Se falhou, verificar status manualmente uma vez
       checkLocationStatus();
     }
@@ -78,8 +110,12 @@ export default function HomeScreen({ navigation }) {
 
   const checkLocationStatus = async () => {
     try {
+      console.log("🔍 Verificando status de localização...");
       const isLocationEnabled = await Location.hasServicesEnabledAsync();
       const { status } = await Location.getForegroundPermissionsAsync();
+
+      console.log("🗺️ GPS habilitado:", isLocationEnabled);
+      console.log("🗺️ Permissão atual:", status);
 
       if (status !== "granted") {
         setLocationStatus("negada");
@@ -96,6 +132,7 @@ export default function HomeScreen({ navigation }) {
       getCurrentLocation();
     } catch (error) {
       // Silenciosamente define como inativo
+      console.error("Erro ao verificar status de localização:", error);
       setLocationStatus("inativa");
     }
   };
@@ -103,23 +140,29 @@ export default function HomeScreen({ navigation }) {
   const requestLocationPermission = async () => {
     try {
       setLocationStatus("verificando");
+      console.log("🗺️ Solicitando permissão de localização...");
       const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log("🗺️ Status da permissão de localização:", status);
 
       if (status === "granted") {
         setupLocationWatcher(); // Configurar watcher após obter permissão
       } else {
         setLocationStatus("negada");
+        console.log("⚠️ Permissão de localização negada");
       }
     } catch (error) {
       setLocationStatus("inativa");
+      console.error("Erro ao solicitar permissão de localização:", error);
     }
   };
 
   const getCurrentLocation = async () => {
     try {
+      console.log("📍 Tentando obter localização atual...");
       const isLocationEnabled = await Location.hasServicesEnabledAsync();
 
       if (!isLocationEnabled) {
+        console.log("❌ GPS desabilitado pelo usuário");
         setLocationStatus("inativa");
         // Parar o watcher se GPS foi desativado
         if (locationWatcher) {
@@ -129,13 +172,17 @@ export default function HomeScreen({ navigation }) {
         return;
       }
 
+      console.log("✅ GPS habilitado, obtendo posição...");
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
         timeout: 10000,
       });
+
+      console.log("✅ Localização obtida:", location.coords);
       setUserLocation(location.coords);
       setLocationStatus("ativa");
     } catch (error) {
+      console.error("❌ Erro ao obter localização:", error);
       setLocationStatus("inativa");
       // Parar o watcher se houver erro
       if (locationWatcher) {
@@ -212,6 +259,109 @@ export default function HomeScreen({ navigation }) {
       .replace(/[\u0300-\u036f]/g, "") // Remover acentos
       .replace(/[^\w\s]/g, "") // Manter apenas letras, números e espaços
       .trim();
+  };
+
+  // Função para lidar com OCR
+  const handleOCRScan = async () => {
+    if (isOCRProcessing) return;
+
+    setIsOCRProcessing(true);
+
+    try {
+      const result = await OCRUtils.scanMedicineFromImage();
+
+      // Salvar resultado no storage para análise posterior
+      await OCRDataManager.saveOCRResult(result);
+
+      if (result.success) {
+        // Usar o termo estruturado para pesquisa
+        const searchTerm = result.searchTerm || result.medicineName;
+        setBusca(searchTerm);
+
+        // Log do JSON estruturado para debugging
+        console.log(
+          "📊 OCR JSON Result:",
+          JSON.stringify(result.json, null, 2)
+        );
+
+        // Criar mensagem detalhada baseada nos dados estruturados
+        let alertMessage = `Medicamento detectado: ${searchTerm}`;
+        alertMessage += `\nConfiança: ${Math.round(result.confidence * 100)}%`;
+
+        if (result.medicine?.dosage?.full) {
+          alertMessage += `\nDosagem: ${result.medicine.dosage.full}`;
+        }
+
+        if (
+          result.medicine?.category &&
+          result.medicine.category !== "medicamento"
+        ) {
+          alertMessage += `\nCategoria: ${result.medicine.category}`;
+        }
+
+        if (result.medicine?.manufacturer?.name) {
+          alertMessage += `\nFabricante: ${result.medicine.manufacturer.name}`;
+        }
+
+        if (result.isSimulation) {
+          alertMessage += "\n\n⚠️ Modo simulação ativo";
+        }
+
+        Alert.alert(texts.ocrSuccess, alertMessage, [{ text: "OK" }]);
+
+        // Log adicional das informações estruturadas
+        if (result.medicine) {
+          console.log("💊 Medicamento detectado:", {
+            nome: result.medicine.name,
+            categoria: result.medicine.category,
+            dosagem: result.medicine.dosage,
+            fabricante: result.medicine.manufacturer,
+            confianca: result.medicine.confidence,
+            tipo_match: result.medicine.matchType,
+          });
+        }
+
+        if (result.ocr) {
+          console.log("🔍 Dados OCR:", {
+            texto_completo: result.ocr.fullText,
+            palavras_detectadas: result.ocr.wordCount,
+            linhas_detectadas: result.ocr.lines?.length || 0,
+            idioma: result.ocr.language,
+          });
+        }
+      } else {
+        if (result.error !== "Captura cancelada") {
+          let errorMessage = result.error || texts.ocrNoTextFound;
+
+          // Mostrar sugestões se disponíveis
+          if (result.searchSuggestions && result.searchSuggestions.length > 0) {
+            errorMessage += "\n\nSugestões encontradas:";
+            result.searchSuggestions.forEach((suggestion, index) => {
+              errorMessage += `\n${index + 1}. ${suggestion.term}`;
+            });
+            errorMessage +=
+              "\n\nTente pesquisar manualmente por um destes termos.";
+          }
+
+          Alert.alert(texts.ocrError, errorMessage, [{ text: "OK" }]);
+
+          // Log do JSON de erro para debugging
+          if (result.json) {
+            console.log(
+              "❌ Erro OCR JSON:",
+              JSON.stringify(result.json, null, 2)
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erro no OCR:", error);
+      Alert.alert(texts.ocrError, "Erro interno no processamento da imagem", [
+        { text: "OK" },
+      ]);
+    } finally {
+      setIsOCRProcessing(false);
+    }
   };
 
   // Filtra as unidades conforme o remédio pesquisado - apenas unidades com o remédio DISPONÍVEL
@@ -302,6 +452,12 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <StatusBar
+        style="light"
+        backgroundColor={COLORS.primary}
+        translucent={false}
+      />
+
       {/* Header */}
       <View style={styles.header}>
         <Ionicons
@@ -310,58 +466,72 @@ export default function HomeScreen({ navigation }) {
           color={COLORS.iconWhite}
           style={{ marginRight: 10 }}
         />
-        <View style={{ flex: 1 }}>
+        <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>{texts.appName}</Text>
-          <View style={styles.locationIndicator}>
-            <Ionicons
-              name={getLocationStatus().icon}
-              size={12}
-              color={getLocationStatus().color}
-            />
-            <Text
-              style={[
-                styles.locationText,
-                { color: getLocationStatus().color },
-              ]}
-            >
-              {getLocationStatus().text}
-            </Text>
-          </View>
         </View>
+        <View style={{ width: 50 }} />
       </View>
 
-      {/* Busca com ícone */}
-      <View style={styles.searchContainer}>
-        <Ionicons
-          name="search"
-          size={ICON_SIZES.xl}
-          color={COLORS.textLight}
-          style={styles.searchIcon}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={texts.searchPlaceholder}
-          placeholderTextColor={COLORS.textLight}
-          value={busca}
-          onChangeText={handleBuscaChange}
-          maxLength={50}
-          autoCapitalize="words"
-          autoCorrect={false}
-          textContentType="none"
-          autoComplete="off"
-        />
-        {busca.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={() => setBusca("")}
-          >
-            <Ionicons
-              name="close-circle"
-              size={ICON_SIZES.lg}
-              color={COLORS.textLight}
+      {/* Container principal de busca */}
+      <View style={styles.searchContainerWrapper}>
+        {/* Busca com ícone */}
+        <View style={styles.searchContainer}>
+          <Ionicons
+            name="search"
+            size={ICON_SIZES.xl}
+            color={COLORS.textLight}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder={texts.searchPlaceholder}
+            placeholderTextColor={COLORS.textLight}
+            value={busca}
+            onChangeText={handleBuscaChange}
+            maxLength={50}
+            autoCapitalize="words"
+            autoCorrect={false}
+            textContentType="none"
+            autoComplete="off"
+          />
+          {busca.length > 0 && (
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={() => setBusca("")}
+            >
+              <Ionicons
+                name="close-circle"
+                size={ICON_SIZES.lg}
+                color={COLORS.textLight}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Botão OCR - Maior e mais visível */}
+        <TouchableOpacity
+          style={[
+            styles.ocrButton,
+            isOCRProcessing && styles.ocrButtonDisabled,
+          ]}
+          onPress={handleOCRScan}
+          disabled={isOCRProcessing}
+          activeOpacity={0.8}
+        >
+          {isOCRProcessing ? (
+            <ActivityIndicator
+              size="small"
+              color={COLORS.ocrButtonIcon}
+              style={{ transform: [{ scale: 1.2 }] }}
             />
-          </TouchableOpacity>
-        )}
+          ) : (
+            <Ionicons
+              name="camera"
+              size={ICON_SIZES.xxl + 4} // Ícone maior
+              color={COLORS.ocrButtonIcon}
+            />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Botões de ação */}
@@ -480,7 +650,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     alignItems: "center",
-    paddingTop: Platform.OS === "ios" ? 80 : 60,
+    paddingTop: 40, // Reduzido já que status bar não é mais translúcida
   },
 
   // Header
@@ -499,27 +669,29 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...TEXT_STYLES.headerTitle,
   },
-  locationIndicator: {
-    flexDirection: "row",
+  headerTitleContainer: {
+    flex: 1,
     alignItems: "center",
-    marginTop: SPACING.xs,
-  },
-  locationText: {
-    ...TEXT_STYLES.locationText,
-    marginLeft: SPACING.xs,
+    justifyContent: "center",
   },
 
   // Busca
-  searchContainer: {
+  searchContainerWrapper: {
     flexDirection: "row",
     alignItems: "center",
     width: "85%",
-    backgroundColor: COLORS.cardBackground,
-    borderRadius: Platform.OS === "ios" ? 22 : 18,
     marginTop: -30,
     marginBottom: SPACING.base,
+    gap: SPACING.base,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 18,
     ...SHADOWS.light,
-    borderWidth: Platform.OS === "ios" ? 0 : 1,
+    borderWidth: 1,
     borderColor: COLORS.border,
     paddingHorizontal: SPACING.lg,
   },
@@ -528,15 +700,32 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    paddingVertical: Platform.OS === "ios" ? SPACING.lg + 2 : SPACING.lg,
+    paddingVertical: SPACING.lg,
     fontSize: FONT_SIZES.lg,
-    fontFamily: Platform.OS === "ios" ? FONTS.semiBold : FONTS.regular,
+    fontFamily: FONTS.regular,
     color: COLORS.textPrimary,
-    fontWeight: Platform.OS === "ios" ? "500" : "400",
+    fontWeight: "400",
   },
   clearButton: {
     padding: SPACING.xs,
     marginLeft: SPACING.sm,
+  },
+  ocrButton: {
+    width: 70, // Aumentado de 58 para 64
+    height: 64, // Aumentado de 58 para 64
+    borderRadius: 32, // Ajustado proporcionalmente
+    backgroundColor: COLORS.ocrButtonBackground, // Usando cor do tema
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOWS.heavy,
+    elevation: 8, // Aumentado para mais destaque
+    borderWidth: 3, // Borda mais grossa
+    borderColor: COLORS.ocrButtonBorder, // Usando cor do tema
+  },
+  ocrButtonDisabled: {
+    backgroundColor: COLORS.ocrButtonDisabled, // Usando cor do tema
+    elevation: 2,
+    opacity: 0.7,
   },
 
   // Botões de ação
@@ -576,7 +765,7 @@ const styles = StyleSheet.create({
   newsButtonText: {
     ...TEXT_STYLES.buttonText,
     color: COLORS.iconWhite,
-    fontWeight: Platform.OS === "ios" ? "600" : "bold",
+    fontWeight: "bold",
   },
 
   // Cards das unidades
@@ -584,11 +773,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.cardBackground,
     width: 350,
     height: 100,
-    borderRadius: Platform.OS === "ios" ? SPACING.lg : SPACING.base,
+    borderRadius: SPACING.base,
     padding: SPACING.lg,
     marginBottom: SPACING.base,
     ...SHADOWS.light,
-    borderWidth: Platform.OS === "ios" ? 0 : 1,
+    borderWidth: 1,
     borderColor: COLORS.border,
   },
   cardContent: {
@@ -598,7 +787,8 @@ const styles = StyleSheet.create({
     ...TEXT_STYLES.cardTitle,
     fontSize: FONT_SIZES.lg,
     marginBottom: SPACING.md,
-    fontWeight: Platform.OS === "ios" ? "600" : "bold",
+    fontWeight: "bold",
+    color: COLORS.textPrimary,
   },
   cardInfoRow: {
     flexDirection: "row",
@@ -608,12 +798,16 @@ const styles = StyleSheet.create({
   cardDistance: {
     ...TEXT_STYLES.distanceText,
     fontSize: FONT_SIZES.base,
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
     marginLeft: SPACING.xs,
+    fontWeight: "bold",
   },
   cardHorario: {
     ...TEXT_STYLES.timeText,
     marginLeft: SPACING.xs,
+    color: COLORS.textSecondary,
+    fontSize: FONT_SIZES.md,
+    fontWeight: "normal",
   },
 
   // Estado vazio

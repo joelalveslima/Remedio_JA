@@ -2,7 +2,6 @@ import React from "react";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { Platform } from "react-native";
 import {
   useFonts,
   OpenSans_400Regular,
@@ -54,9 +53,9 @@ export default function App() {
         <Stack.Screen name="Noticias" component={NewsScreen} />
       </Stack.Navigator>
       <StatusBar
-        style="dark"
+        style="light"
         backgroundColor={COLORS.primary}
-        translucent={Platform.OS === "android"}
+        translucent={false}
       />
     </NavigationContainer>
   );

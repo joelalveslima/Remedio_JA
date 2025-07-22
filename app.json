@@ -12,19 +12,19 @@
       "resizeMode": "contain",
       "backgroundColor": "#21796A"
     },
-    "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
-      }
-    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#21796A"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE"
+      ],
       "statusBar": {
         "backgroundColor": "#21796A",
         "barStyle": "light-content"
@@ -33,6 +33,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "permissions": ["LOCATION"]
+    "permissions": ["LOCATION", "CAMERA", "CAMERA_ROLL"]
   }
 }

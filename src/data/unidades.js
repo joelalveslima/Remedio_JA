@@ -21,7 +21,7 @@ export const unidades = [
       { remedio: "Dipirona", disponivel: true },
       { remedio: "Amoxicilina", disponivel: true },
       { remedio: "Losartana", disponivel: false },
-      { remedio: "Captopril", disponivel: true },
+      { remedio: "Cetoprofeno", disponivel: true },
       { remedio: "Cetoconazol", disponivel: false },
     ],
   },

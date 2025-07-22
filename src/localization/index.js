@@ -13,6 +13,12 @@ const texts = {
   // Busca
   searchPlaceholder: "Digite o nome do remédio",
   searchMedicine: "Pesquise um remédio",
+  ocrScan: "Escanear receita",
+  ocrTooltip: "Use a câmera para capturar o nome do medicamento",
+  ocrProcessing: "Processando imagem...",
+  ocrError: "Erro ao processar imagem",
+  ocrNoTextFound: "Nenhum texto encontrado na imagem",
+  ocrSuccess: "Medicamento encontrado!",
 
   // Botões
   viewOnMap: "Ver no mapa",
@@ -47,11 +53,7 @@ const texts = {
   // Horários
   to: "às",
 
-  // Console logs
-  locationTimeout: "Timeout na localização - usando distâncias estimadas",
-  locationUnavailable: "Localização indisponível - usando distâncias estimadas",
-  gpsDisabled: "GPS desabilitado - usando distâncias estimadas",
-  locationError: "Erro na localização - usando distâncias estimadas:",
+  // Strings de permissão ainda utilizadas
   permissionDenied:
     "Permissão de localização negada - usando distâncias estimadas",
   permissionError:

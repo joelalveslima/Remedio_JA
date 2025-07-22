@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   FlatList,
   Linking,
-  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
@@ -350,7 +349,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.primary,
-    paddingTop: Platform.OS === "ios" ? 60 : 50,
+    paddingTop: 30, // Ajustado para status bar não translúcida
     paddingBottom: SPACING.xl,
     paddingHorizontal: SPACING.xl,
     ...SHADOWS.heavy,
@@ -508,20 +507,20 @@ const styles = StyleSheet.create({
   bottomNavigation: {
     flexDirection: "row",
     backgroundColor: COLORS.primary,
-    paddingVertical: Platform.OS === "ios" ? SPACING.md + 4 : SPACING.md + 2,
+    paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.xxxl + 8,
-    paddingBottom: Platform.OS === "ios" ? SPACING.xl + 2 : SPACING.md + 2,
+    paddingBottom: SPACING.sm,
     justifyContent: "space-around",
     ...SHADOWS.medium,
   },
   bottomButton: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.md,
-    borderRadius: Platform.OS === "ios" ? 12 : 10,
+    paddingVertical: SPACING.sm, // Reduzido de md para sm
+    paddingHorizontal: SPACING.sm, // Reduzido de md para sm
+    borderRadius: 10,
     backgroundColor: "rgba(255, 255, 255, 0.12)",
-    minWidth: 48,
-    minHeight: 48,
+    minWidth: 44, // Reduzido de 48 para 44
+    minHeight: 44, // Reduzido de 48 para 44
   },
 });
