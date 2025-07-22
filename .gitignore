@@ -39,6 +39,4 @@ src/config/apiKeys.js
 # typescript
 *.tsbuildinfo
 
-# Arquivos de documentação (exceto README.md)
-*.md
-!README.md
+
