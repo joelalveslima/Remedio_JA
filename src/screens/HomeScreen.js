@@ -394,24 +394,51 @@ export default function HomeScreen({ navigation }) {
           });
 
   const handleVerNoMapa = () => {
-    // Se não há busca, envia todas as unidades ordenadas por distância (usando GPS se disponível)
-    if (busca.trim().length === 0) {
-      const unidadesOrdenadas = [...unidadesComDistancia].sort((a, b) => {
-        return parseFloat(a.distancia) - parseFloat(b.distancia);
-      });
+    try {
+      console.log("🗺️ Navegando para o mapa...");
+      console.log("📍 Busca atual:", busca);
+      console.log("📊 Unidades filtradas:", unidadesFiltradas.length);
 
-      navigation.navigate("Mapa", {
-        unidades: unidadesOrdenadas,
-        remedioFiltro: "",
-        showAllUnits: true, // Flag para indicar que deve mostrar todas as unidades
-      });
-    } else {
-      // Se há busca, envia apenas as unidades filtradas
-      navigation.navigate("Mapa", {
-        unidades: unidadesFiltradas,
-        remedioFiltro: busca,
-        showAllUnits: false,
-      });
+      // Se não há busca, envia todas as unidades ordenadas por distância (usando GPS se disponível)
+      if (busca.trim().length === 0) {
+        const unidadesOrdenadas = [...unidadesComDistancia].sort((a, b) => {
+          return parseFloat(a.distancia) - parseFloat(b.distancia);
+        });
+
+        console.log("📋 Enviando todas as unidades:", unidadesOrdenadas.length);
+
+        navigation.navigate("Mapa", {
+          unidades: unidadesOrdenadas,
+          remedioFiltro: "",
+          showAllUnits: true, // Flag para indicar que deve mostrar todas as unidades
+        });
+      } else {
+        // Se há busca, envia apenas as unidades filtradas
+        if (unidadesFiltradas.length === 0) {
+          Alert.alert(
+            "Nenhuma unidade encontrada",
+            `Não foram encontradas unidades com o medicamento "${busca}" disponível.`,
+            [{ text: "OK" }]
+          );
+          return;
+        }
+
+        console.log(
+          "🔍 Enviando unidades filtradas:",
+          unidadesFiltradas.length
+        );
+
+        navigation.navigate("Mapa", {
+          unidades: unidadesFiltradas,
+          remedioFiltro: busca,
+          showAllUnits: false,
+        });
+      }
+    } catch (error) {
+      console.error("❌ Erro ao navegar para o mapa:", error);
+      Alert.alert("Erro", "Ocorreu um erro ao abrir o mapa. Tente novamente.", [
+        { text: "OK" },
+      ]);
     }
   };
 

@@ -20,7 +20,38 @@ import {
 import { calculateDistance } from "../utils/locationUtils";
 
 export default function MapScreen({ navigation, route }) {
-  const { unidades, remedioFiltro, showAllUnits = false } = route.params;
+  // Verificação de segurança para parâmetros da rota
+  if (!route.params) {
+    console.error("❌ MapScreen: Parâmetros de rota não encontrados");
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <Text style={TEXT_STYLES.errorText}>Erro: Dados não encontrados</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={TEXT_STYLES.buttonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const {
+    unidades = [],
+    remedioFiltro = "",
+    showAllUnits = false,
+  } = route.params;
+
+  // Verificação se as unidades foram recebidas
+  if (!unidades || unidades.length === 0) {
+    console.warn("⚠️ MapScreen: Nenhuma unidade recebida");
+  }
+
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
   const [locationWatcher, setLocationWatcher] = useState(null);
