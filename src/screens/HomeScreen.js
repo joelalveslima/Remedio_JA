@@ -279,10 +279,12 @@ export default function HomeScreen({ navigation }) {
         setBusca(searchTerm);
 
         // Log do JSON estruturado para debugging
-        console.log(
-          "📊 OCR JSON Result:",
-          JSON.stringify(result.json, null, 2)
-        );
+        if (result.json) {
+          console.log(
+            "📊 OCR JSON Result:",
+            JSON.stringify(result.json, null, 2)
+          );
+        }
 
         // Criar mensagem detalhada baseada nos dados estruturados
         let alertMessage = `Medicamento detectado: ${searchTerm}`;
@@ -520,15 +522,15 @@ export default function HomeScreen({ navigation }) {
         >
           {isOCRProcessing ? (
             <ActivityIndicator
-              size="small"
-              color={COLORS.ocrButtonIcon}
-              style={{ transform: [{ scale: 1.2 }] }}
+              size="large"
+              color={COLORS.textWhite}
+              style={{ transform: [{ scale: 1.3 }] }}
             />
           ) : (
             <Ionicons
               name="camera"
-              size={ICON_SIZES.xxl + 4} // Ícone maior
-              color={COLORS.ocrButtonIcon}
+              size={ICON_SIZES.large} // Ícone muito maior para destaque
+              color={COLORS.textWhite}
             />
           )}
         </TouchableOpacity>
@@ -711,21 +713,29 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.sm,
   },
   ocrButton: {
-    width: 70, // Aumentado de 58 para 64
-    height: 64, // Aumentado de 58 para 64
-    borderRadius: 32, // Ajustado proporcionalmente
-    backgroundColor: COLORS.ocrButtonBackground, // Usando cor do tema
+    width: 80, // Maior para mais destaque
+    height: 80, // Maior para mais destaque
+    borderRadius: 40, // Ajustado proporcionalmente
+    backgroundColor: COLORS.primary, // Verde principal do app
     alignItems: "center",
     justifyContent: "center",
     ...SHADOWS.heavy,
-    elevation: 8, // Aumentado para mais destaque
-    borderWidth: 3, // Borda mais grossa
-    borderColor: COLORS.ocrButtonBorder, // Usando cor do tema
+    elevation: 12, // Maior elevação para destaque
+    borderWidth: 4, // Borda mais grossa
+    borderColor: COLORS.primaryLight, // Borda clara
+    shadowColor: COLORS.primary, // Sombra na cor principal
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   ocrButtonDisabled: {
-    backgroundColor: COLORS.ocrButtonDisabled, // Usando cor do tema
-    elevation: 2,
-    opacity: 0.7,
+    backgroundColor: COLORS.textLight, // Cinza claro quando desabilitado
+    elevation: 4,
+    opacity: 0.6,
+    borderColor: COLORS.border, // Borda neutra quando desabilitado
   },
 
   // Botões de ação

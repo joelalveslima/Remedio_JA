@@ -1,4 +1,3 @@
-import React from "react";
 import * as ImagePicker from "expo-image-picker";
 import { Alert } from "react-native";
 import {
@@ -19,7 +18,6 @@ export class OCRUtils {
   static async requestCameraPermissions() {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      console.log("📷 Status da permissão da câmera:", status);
       return status === "granted";
     } catch (error) {
       console.error("Erro ao solicitar permissão da câmera:", error);
@@ -32,18 +30,13 @@ export class OCRUtils {
    */
   static async captureImage() {
     try {
-      console.log("📷 Iniciando captura de imagem...");
-
       // Verificar permissões primeiro
       const { status: currentStatus } =
         await ImagePicker.getCameraPermissionsAsync();
-      console.log("📷 Status atual da permissão:", currentStatus);
 
       const hasPermission = await this.requestCameraPermissions();
-      console.log("📷 Permissão obtida:", hasPermission);
 
       if (!hasPermission) {
-        console.log("❌ Permissão da câmera negada");
         Alert.alert(
           "Permissão Necessária",
           "É necessário permitir o acesso à câmera para usar esta funcionalidade."
@@ -51,26 +44,17 @@ export class OCRUtils {
         return null;
       }
 
-      console.log("📷 Abrindo câmera...");
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
+        allowsEditing: false, // Removido para não precisar cortar
+        quality: 0.9, // Qualidade maior para melhor OCR
         base64: true, // Necessário para enviar para Google Vision API
       });
 
-      console.log("📷 Resultado da captura:", {
-        cancelado: result.canceled,
-        temAssets: result.assets && result.assets.length > 0,
-      });
-
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        console.log("✅ Imagem capturada com sucesso");
         return result.assets[0];
       }
 
-      console.log("ℹ️ Captura cancelada pelo usuário");
       return null;
     } catch (error) {
       console.error("❌ Erro ao capturar imagem:", error);
@@ -110,12 +94,8 @@ export class OCRUtils {
    */
   static async processImageWithOCR(imageUri, base64Data) {
     try {
-      console.log("🔍 Iniciando processamento OCR...");
-
       // Validar configuração
-      console.log("⚙️ Validando configuração da API...");
       if (!validateConfig()) {
-        console.warn("⚠️ Configuração da API não válida");
         return {
           success: false,
           error: "Não foi possível encontrar o medicamento na imagem",
@@ -124,20 +104,13 @@ export class OCRUtils {
         };
       }
 
-      console.log("✅ Configuração válida, processando com Google Vision API");
-
       // Converter imagem para base64 se necessário
-      console.log("🔄 Convertendo imagem para base64...");
       const base64Image = await this.convertImageToBase64(imageUri, base64Data);
       if (!base64Image) {
-        console.error("❌ Falha na conversão para base64");
         throw new Error("Não foi possível processar a imagem");
       }
 
-      console.log("✅ Base64 gerado, tamanho:", base64Image.length);
-
       // Preparar payload para Google Cloud Vision API
-      console.log("📦 Preparando payload para API...");
       const requestBody = {
         requests: [
           {
@@ -151,7 +124,6 @@ export class OCRUtils {
       };
 
       // Fazer requisição para Google Cloud Vision API
-      console.log("🌐 Enviando requisição para Google Cloud Vision API...");
       const response = await fetch(
         `${GOOGLE_CLOUD_CONFIG.VISION_API_URL}?key=${GOOGLE_CLOUD_CONFIG.API_KEY}`,
         {
@@ -164,38 +136,25 @@ export class OCRUtils {
         }
       );
 
-      console.log("📡 Resposta recebida, status:", response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("❌ Erro na API:", {
-          status: response.status,
-          statusText: response.statusText,
-          errorBody: errorText,
-        });
         throw new Error(
           `Erro da API: ${response.status} - ${response.statusText}`
         );
       }
 
       const result = await response.json();
-      console.log("📊 JSON recebido da API, processando resposta...");
 
       // Processar resposta da API
       return this.processGoogleVisionResponse(result);
     } catch (error) {
-      console.error("💥 Erro no processamento OCR:", {
-        message: error.message,
-        name: error.name,
-        stack: error.stack?.substring(0, 200) + "...",
-      });
+      console.error("Erro no processamento OCR:", error.message);
 
       // Em caso de erro da API, retornar erro
       if (
         error.message.includes("Erro da API") ||
         error.message.includes("Rede")
       ) {
-        console.warn("🔄 Erro na API");
         return {
           success: false,
           error: "Não foi possível encontrar o medicamento na imagem",
@@ -650,14 +609,10 @@ export class OCRUtils {
    */
   static async scanMedicineFromImage() {
     try {
-      console.log("🔍 === INICIANDO PROCESSO OCR ===");
-
       // Captura a imagem
-      console.log("📷 Etapa 1: Capturando imagem...");
       const image = await this.captureImage();
 
       if (!image) {
-        console.log("❌ Nenhuma imagem capturada");
         return {
           success: false,
           error: "Captura cancelada",
@@ -666,28 +621,10 @@ export class OCRUtils {
         };
       }
 
-      console.log("✅ Imagem capturada:", {
-        uri: image.uri,
-        width: image.width,
-        height: image.height,
-        hasBase64: !!image.base64,
-        base64Length: image.base64 ? image.base64.length : 0,
-      });
-
       // Processa com OCR (passa tanto URI quanto base64)
-      console.log("🔍 Etapa 2: Processando OCR...");
       const ocrResult = await this.processImageWithOCR(image.uri, image.base64);
 
-      console.log("📊 Resultado OCR:", {
-        success: ocrResult.success,
-        source: ocrResult.source,
-        hasSearchTerm: !!ocrResult.searchTerm,
-        error: ocrResult.error || "Nenhum erro",
-      });
-
       if (ocrResult.success) {
-        console.log("✅ OCR bem-sucedido, montando resposta final...");
-
         const finalResult = {
           success: true,
           medicineName: ocrResult.searchTerm, // Para compatibilidade
@@ -713,22 +650,8 @@ export class OCRUtils {
           },
         };
 
-        console.log("🎉 Resultado final montado:", {
-          searchTerm: finalResult.searchTerm,
-          confidence: finalResult.confidence,
-        });
-
         return finalResult;
       } else {
-        console.log("❌ OCR falhou:", {
-          error: ocrResult.error,
-          hasSuggestions: !!(
-            ocrResult.searchSuggestions &&
-            ocrResult.searchSuggestions.length > 0
-          ),
-          suggestionsCount: ocrResult.searchSuggestions?.length || 0,
-        });
-
         return {
           success: false,
           error: ocrResult.error || "Não foi possível detectar texto na imagem",
@@ -751,11 +674,7 @@ export class OCRUtils {
         };
       }
     } catch (error) {
-      console.error("💥 ERRO CRÍTICO NO PROCESSO OCR:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      });
+      console.error("Erro crítico no processo OCR:", error.message);
 
       return {
         success: false,
@@ -770,32 +689,3 @@ export class OCRUtils {
     }
   }
 }
-
-/**
- * Hook personalizado para uso do OCR em componentes React
- */
-export const useOCR = () => {
-  const [isProcessing, setIsProcessing] = React.useState(false);
-
-  const scanMedicine = async (onSuccess, onError) => {
-    setIsProcessing(true);
-    try {
-      const result = await OCRUtils.scanMedicineFromImage();
-
-      if (result.success) {
-        onSuccess?.(result.medicineName, result.confidence);
-      } else {
-        onError?.(result.error);
-      }
-    } catch (error) {
-      onError?.("Erro interno no processamento");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return {
-    scanMedicine,
-    isProcessing,
-  };
-};

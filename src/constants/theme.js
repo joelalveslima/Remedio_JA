@@ -1,45 +1,43 @@
 // Tema centralizado do app - modifique aqui para atualizar todo o app
 export const COLORS = {
-  // Cores principais
+  // Cores principais - Mantidas
   primary: "#009900",
-  primaryLight: "#F0F9F7",
+  primaryLight: "#E8F5E8", // Mais suave e harmoniosa
+  primaryDark: "#006600", // Versão mais escura do verde principal
 
-  // Cores de status
+  // Cores de status - Melhoradas
   success: "#4CAF50",
-  error: "#B00020",
+  error: "#F44336",
   warning: "#FF9800",
   info: "#2196F3",
 
-  // Cores de texto - Ajustadas para melhor visibilidade
-  textPrimary: "#1A1A1A", // Preto mais escuro para melhor contraste
-  textSecondary: "#444", // Cinza mais escuro
-  textLight: "#666", // Menos claro para melhor legibilidade
-  textWhite: "#fff",
+  // Cores de texto - Otimizadas para legibilidade
+  textPrimary: "#212121", // Preto mais suave
+  textSecondary: "#757575", // Cinza balanceado
+  textLight: "#9E9E9E", // Cinza claro consistente
+  textWhite: "#FFFFFF",
 
-  // Cores de fundo
-  background: "#F6F8F9",
-  cardBackground: "#fff",
+  // Cores de fundo - Harmonizadas
+  background: "#FAFAFA", // Fundo mais limpo
+  cardBackground: "#FFFFFF",
+  surfaceLight: "#F5F5F5", // Nova cor para superfícies leves
 
-  // Cores de ícones
-  iconLocation: "#4CAF50", // Verde para localização
+  // Cores de ícones - Coordenadas com o tema
+  iconLocation: "#4CAF50", // Verde consistente
   iconTime: "#FF9800", // Laranja para horário
-  iconPrimary: "#21796A", // Verde principal
-  iconSecondary: "#666",
-  iconWhite: "#fff",
+  iconPrimary: "#009900", // Usando a cor principal
+  iconSecondary: "#757575", // Consistente com textSecondary
+  iconWhite: "#FFFFFF",
+  iconActive: "#4CAF50", // Verde para estados ativos
 
-  // Cores de borda
+  // Cores de borda - Sutis e elegantes
   border: "#E0E0E0",
   borderLight: "#F0F0F0",
+  borderFocus: "#009900", // Verde principal para foco
 
   // Cores de disponibilidade - Melhor contraste
-  available: "#2E7D32", // Verde mais escuro
-  unavailable: "#C62828", // Vermelho mais escuro
-
-  // Cores do botão OCR
-  ocrButtonBackground: "#2E7D32", // Cor laranja vibrante para mais visibilidade
-  ocrButtonDisabled: "#999", // Cor quando desabilitado
-  ocrButtonBorder: "rgba(255, 255, 255, 0.5)", // Borda mais visível
-  ocrButtonIcon: "#fff", // Cor do ícone
+  available: "#4CAF50", // Verde mais amigável
+  unavailable: "#F44336", // Vermelho mais visível
 };
 
 export const FONTS = {
