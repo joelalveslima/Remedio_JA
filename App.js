@@ -2,17 +2,11 @@ import React from "react";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import {
-  useFonts,
-  OpenSans_400Regular,
-  OpenSans_600SemiBold,
-  OpenSans_700Bold,
-} from "@expo-google-fonts/open-sans";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import { Platform } from "react-native";
 
 import HomeScreen from "./src/screens/HomeScreen";
-import MapScreen from "./src/screens/MapScreen";
 import DetailScreen from "./src/screens/DetailScreen";
 import NewsScreen from "./src/screens/NewsScreen";
 import { COLORS } from "./src/constants/theme";
@@ -23,24 +17,18 @@ SplashScreen.preventAutoHideAsync();
 const Stack = createStackNavigator();
 
 export default function App() {
-  let [fontsLoaded] = useFonts({
-    OpenSans_400Regular,
-    OpenSans_600SemiBold,
-    OpenSans_700Bold,
-  });
-
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) {
-    return null;
-  }
+    // Hide splash screen when app loads
+    SplashScreen.hideAsync();
+  }, []);
 
   return (
     <NavigationContainer>
+      <StatusBar
+        style="light"
+        backgroundColor={COLORS.primary}
+        translucent={Platform.OS === "android"}
+      />
       <Stack.Navigator
         initialRouteName="Home"
         screenOptions={{
@@ -48,15 +36,9 @@ export default function App() {
         }}
       >
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Mapa" component={MapScreen} />
         <Stack.Screen name="Detalhes" component={DetailScreen} />
         <Stack.Screen name="Noticias" component={NewsScreen} />
       </Stack.Navigator>
-      <StatusBar
-        style="light"
-        backgroundColor={COLORS.primary}
-        translucent={false}
-      />
     </NavigationContainer>
   );
 }

@@ -8,6 +8,7 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,6 +27,7 @@ import { unidades } from "../data/unidades";
 import { calculateDistance } from "../utils/locationUtils";
 import { OCRUtils } from "../utils/ocrUtils";
 import { OCRDataManager } from "../utils/ocrDataManager";
+import { getResponsiveConfig } from "../utils/safeAreaUtils";
 
 export default function HomeScreen({ navigation }) {
   const [busca, setBusca] = useState("");
@@ -34,14 +36,15 @@ export default function HomeScreen({ navigation }) {
   const [locationWatcher, setLocationWatcher] = useState(null);
   const [isOCRProcessing, setIsOCRProcessing] = useState(false);
 
+  // Configuração responsiva para safe area
+  const safeAreaConfig = getResponsiveConfig();
+
   useEffect(() => {
-    console.log("🚀 Inicializando HomeScreen...");
     initializeLocation();
 
     return () => {
       // Limpar o watcher quando o componente for desmontado
       if (locationWatcher) {
-        console.log("🧹 Limpando watcher de localização...");
         locationWatcher.remove();
       }
     };
@@ -49,11 +52,8 @@ export default function HomeScreen({ navigation }) {
 
   const initializeLocation = async () => {
     try {
-      console.log("🔄 Inicializando sistema de localização...");
-
       // Primeiro verificar se já temos permissão
       const { status } = await Location.getForegroundPermissionsAsync();
-      console.log("🗺️ Status inicial da permissão:", status);
 
       if (status === "granted") {
         // Já temos permissão, configurar watcher diretamente
@@ -375,8 +375,10 @@ export default function HomeScreen({ navigation }) {
             const searchTerm = normalizeSearchString(busca);
             const info = u.disponibilidade.find((d) => {
               const medicineName = normalizeSearchString(d.remedio);
+              const isMatch =
+                medicineName.includes(searchTerm) && d.disponivel === true;
               // Só inclui se o remédio existe E está disponível
-              return medicineName.includes(searchTerm) && d.disponivel === true;
+              return isMatch;
             });
             if (info) {
               return {
@@ -393,57 +395,11 @@ export default function HomeScreen({ navigation }) {
             return parseFloat(a.distancia) - parseFloat(b.distancia);
           });
 
-  const handleVerNoMapa = () => {
-    try {
-      console.log("🗺️ Navegando para o mapa...");
-      console.log("📍 Busca atual:", busca);
-      console.log("📊 Unidades filtradas:", unidadesFiltradas.length);
-
-      // Se não há busca, envia todas as unidades ordenadas por distância (usando GPS se disponível)
-      if (busca.trim().length === 0) {
-        const unidadesOrdenadas = [...unidadesComDistancia].sort((a, b) => {
-          return parseFloat(a.distancia) - parseFloat(b.distancia);
-        });
-
-        console.log("📋 Enviando todas as unidades:", unidadesOrdenadas.length);
-
-        navigation.navigate("Mapa", {
-          unidades: unidadesOrdenadas,
-          remedioFiltro: "",
-          showAllUnits: true, // Flag para indicar que deve mostrar todas as unidades
-        });
-      } else {
-        // Se há busca, envia apenas as unidades filtradas
-        if (unidadesFiltradas.length === 0) {
-          Alert.alert(
-            "Nenhuma unidade encontrada",
-            `Não foram encontradas unidades com o medicamento "${busca}" disponível.`,
-            [{ text: "OK" }]
-          );
-          return;
-        }
-
-        console.log(
-          "🔍 Enviando unidades filtradas:",
-          unidadesFiltradas.length
-        );
-
-        navigation.navigate("Mapa", {
-          unidades: unidadesFiltradas,
-          remedioFiltro: busca,
-          showAllUnits: false,
-        });
-      }
-    } catch (error) {
-      console.error("❌ Erro ao navegar para o mapa:", error);
-      Alert.alert("Erro", "Ocorreu um erro ao abrir o mapa. Tente novamente.", [
-        { text: "OK" },
-      ]);
-    }
-  };
-
   const handleCardPress = (unidade) => {
-    navigation.navigate("Detalhes", { unidade });
+    navigation.navigate("Detalhes", {
+      unidade,
+      medicamentoPesquisado: busca.trim().length > 0 ? busca : null,
+    });
   };
 
   // Função para validar e sanitizar o input de busca
@@ -466,7 +422,7 @@ export default function HomeScreen({ navigation }) {
     const sanitizedText = text
       .replace(/[<>\"'&\\\/\{\}\[\]]/g, "") // Remove caracteres HTML perigosos
       .replace(/;/g, "") // Remove ponto e vírgula
-      .substring(0, 50); // Limita a 50 caracteres
+      .substring(0, 20); // Limita a 0 caracteres
 
     // Verifica se contém padrões perigosos
     const hasDangerousPattern = dangerousPatterns.some((pattern) =>
@@ -480,11 +436,13 @@ export default function HomeScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { paddingTop: safeAreaConfig.safeAreaTop }]}
+    >
       <StatusBar
         style="light"
         backgroundColor={COLORS.primary}
-        translucent={false}
+        translucent={safeAreaConfig.isTranslucent}
       />
 
       {/* Header */}
@@ -496,48 +454,59 @@ export default function HomeScreen({ navigation }) {
           style={{ marginRight: 10 }}
         />
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>{texts.appName}</Text>
+          <Text
+            style={styles.headerTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.8}
+          >
+            {texts.appName}
+          </Text>
         </View>
         <View style={{ width: 50 }} />
       </View>
 
       {/* Container principal de busca */}
-      <View style={styles.searchContainerWrapper}>
-        {/* Busca com ícone */}
-        <View style={styles.searchContainer}>
-          <Ionicons
-            name="search"
-            size={ICON_SIZES.xl}
-            color={COLORS.textLight}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder={texts.searchPlaceholder}
-            placeholderTextColor={COLORS.textLight}
-            value={busca}
-            onChangeText={handleBuscaChange}
-            maxLength={50}
-            autoCapitalize="words"
-            autoCorrect={false}
-            textContentType="none"
-            autoComplete="off"
-          />
-          {busca.length > 0 && (
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={() => setBusca("")}
-            >
-              <Ionicons
-                name="close-circle"
-                size={ICON_SIZES.lg}
-                color={COLORS.textLight}
-              />
-            </TouchableOpacity>
-          )}
+      <View style={styles.searchMainContainer}>
+        <View style={styles.searchContainerWrapper}>
+          {/* Busca com ícone */}
+          <View style={styles.searchContainer}>
+            <Ionicons
+              name="search"
+              size={ICON_SIZES.xl}
+              color={COLORS.primary}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder={texts.searchPlaceholder}
+              placeholderTextColor={COLORS.textLight}
+              value={busca}
+              onChangeText={handleBuscaChange}
+              maxLength={50}
+              autoCapitalize="words"
+              autoCorrect={false}
+              textContentType="none"
+              autoComplete="off"
+            />
+            {busca.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setBusca("")}
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={ICON_SIZES.lg}
+                  color={COLORS.textLight}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
+      </View>
 
-        {/* Botão OCR - Maior e mais visível */}
+      {/* Botão de Captura */}
+      <View style={styles.ocrContainer}>
         <TouchableOpacity
           style={[
             styles.ocrButton,
@@ -545,47 +514,19 @@ export default function HomeScreen({ navigation }) {
           ]}
           onPress={handleOCRScan}
           disabled={isOCRProcessing}
-          activeOpacity={0.8}
+          activeOpacity={0.7}
         >
           {isOCRProcessing ? (
-            <ActivityIndicator
-              size="large"
-              color={COLORS.textWhite}
-              style={{ transform: [{ scale: 1.3 }] }}
-            />
+            <>
+              <ActivityIndicator size="small" color={COLORS.textWhite} />
+              <Text style={styles.ocrButtonText}>Processando...</Text>
+            </>
           ) : (
-            <Ionicons
-              name="camera"
-              size={ICON_SIZES.large} // Ícone muito maior para destaque
-              color={COLORS.textWhite}
-            />
+            <>
+              <Ionicons name="camera" size={24} color={COLORS.textWhite} />
+              <Text style={styles.ocrButtonText}>Tirar Foto</Text>
+            </>
           )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Botões de ação */}
-      <View style={styles.actionButtonsContainer}>
-        <TouchableOpacity style={styles.mapButton} onPress={handleVerNoMapa}>
-          <Ionicons
-            name="map-outline"
-            size={18}
-            color={COLORS.iconPrimary}
-            style={{ marginRight: 6 }}
-          />
-          <Text style={styles.mapButtonText}>{texts.viewOnMap}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.newsButton}
-          onPress={() => navigation.navigate("Noticias")}
-        >
-          <Ionicons
-            name="newspaper-outline"
-            size={18}
-            color={COLORS.iconWhite}
-            style={{ marginRight: 6 }}
-          />
-          <Text style={styles.newsButtonText}>{texts.healthNews}</Text>
         </TouchableOpacity>
       </View>
 
@@ -611,17 +552,68 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </View>
           ) : (
-            <View style={styles.emptyStateContainer}>
-              <Ionicons
-                name="search-outline"
-                size={60}
-                color={COLORS.textLight}
-                style={styles.emptyStateIcon}
-              />
-              <Text style={styles.emptyStateTitle}>{texts.searchMedicine}</Text>
-              <Text style={styles.emptyStateSubtitle}>
-                {texts.searchInstructions}
-              </Text>
+            <View style={styles.welcomeContainer}>
+              {/* Seção de boas-vindas */}
+              <View style={styles.welcomeSection}>
+                <Ionicons
+                  name="heart-outline"
+                  size={50}
+                  color={COLORS.primary}
+                  style={styles.welcomeIcon}
+                />
+                <Text style={styles.welcomeTitle}>
+                  Bem-vindo ao Remédio JA!
+                </Text>
+                <Text style={styles.welcomeSubtitle}>
+                  Encontre medicamentos disponíveis nas unidades de saúde da sua
+                  região
+                </Text>
+              </View>
+
+              {/* Cards informativos */}
+              <View style={styles.infoCardsContainer}>
+                <View style={styles.infoCard}>
+                  <Ionicons name="search" size={24} color={COLORS.primary} />
+                  <Text style={styles.infoCardTitle}>Como Pesquisar</Text>
+                  <Text style={styles.infoCardText}>
+                    Digite o nome do medicamento ou use a câmera para escanear a
+                    receita
+                  </Text>
+                </View>
+
+                <View style={styles.infoCard}>
+                  <Ionicons name="location" size={24} color={COLORS.primary} />
+                  <Text style={styles.infoCardTitle}>Localização</Text>
+                  <Text style={styles.infoCardText}>
+                    Ative o GPS para encontrar unidades próximas a você
+                  </Text>
+                </View>
+
+                <View style={styles.infoCard}>
+                  <Ionicons name="time" size={24} color={COLORS.primary} />
+                  <Text style={styles.infoCardTitle}>Horários</Text>
+                  <Text style={styles.infoCardText}>
+                    Confira os horários de funcionamento antes de se deslocar
+                  </Text>
+                </View>
+              </View>
+
+              {/* Dicas úteis */}
+              <View style={styles.tipsContainer}>
+                <Text style={styles.tipsTitle}>💡 Dicas Importantes</Text>
+                <Text style={styles.tipsText}>
+                  • Leve sempre um documento de identidade
+                </Text>
+                <Text style={styles.tipsText}>
+                  • Traga a receita médica original
+                </Text>
+                <Text style={styles.tipsText}>
+                  • Verifique a validade da receita
+                </Text>
+                <Text style={styles.tipsText}>
+                  • Consulte os horários de funcionamento
+                </Text>
+              </View>
             </View>
           )
         }
@@ -669,6 +661,31 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         )}
       />
+
+      {/* Rodapé com botão de notícias */}
+      <View style={styles.footerContainer}>
+        <TouchableOpacity
+          style={styles.newsButton}
+          onPress={() => navigation.navigate("Noticias")}
+          activeOpacity={0.8}
+        >
+          <View style={styles.newsButtonContent}>
+            <View style={styles.newsIconContainer}>
+              <Ionicons name="newspaper" size={26} color={COLORS.iconWhite} />
+            </View>
+            <View style={styles.newsTextContainer}>
+              <Text style={styles.newsButtonTitle}>Notícias</Text>
+              <Text style={styles.newsButtonSubtitle}>Saúde & Bem-estar</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={COLORS.iconWhite}
+              style={styles.newsArrow}
+            />
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -679,7 +696,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     alignItems: "center",
-    paddingTop: 40, // Reduzido já que status bar não é mais translúcida
+    // paddingTop será aplicado dinamicamente via safeAreaConfig
   },
 
   // Header
@@ -694,9 +711,15 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: SPACING.xxxl,
     marginBottom: SPACING.lg,
     ...SHADOWS.heavy,
+    // Margem top negativa para sobrepor a safe area quando necessário
+    marginTop: Platform.OS === "android" ? -16 : 0,
   },
   headerTitle: {
     ...TEXT_STYLES.headerTitle,
+    textAlign: "center",
+    numberOfLines: 1,
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.8,
   },
   headerTitleContainer: {
     flex: 1,
@@ -705,27 +728,31 @@ const styles = StyleSheet.create({
   },
 
   // Busca
+  searchMainContainer: {
+    width: "90%",
+    marginTop: -35,
+    marginBottom: SPACING.lg,
+  },
   searchContainerWrapper: {
     flexDirection: "row",
-    alignItems: "center",
-    width: "85%",
-    marginTop: -30,
-    marginBottom: SPACING.base,
-    gap: SPACING.base,
+    alignItems: "flex-start",
+    gap: SPACING.md,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
     backgroundColor: COLORS.cardBackground,
-    borderRadius: 18,
-    ...SHADOWS.light,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: 25,
+    ...SHADOWS.medium,
+    borderWidth: 2,
+    borderColor: COLORS.primaryLight,
     paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xs,
+    elevation: 8,
   },
   searchIcon: {
-    marginRight: SPACING.base,
+    marginRight: SPACING.md,
   },
   input: {
     flex: 1,
@@ -733,76 +760,101 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.regular,
     color: COLORS.textPrimary,
-    fontWeight: "400",
+    fontWeight: "500",
   },
   clearButton: {
-    padding: SPACING.xs,
+    padding: SPACING.sm,
     marginLeft: SPACING.sm,
   },
+  ocrContainer: {
+    alignItems: "center",
+    marginTop: SPACING.md,
+    marginBottom: SPACING.lg,
+    width: "90%",
+    alignSelf: "center",
+  },
   ocrButton: {
-    width: 80, // Maior para mais destaque
-    height: 80, // Maior para mais destaque
-    borderRadius: 40, // Ajustado proporcionalmente
-    backgroundColor: COLORS.primary, // Verde principal do app
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    ...SHADOWS.heavy,
-    elevation: 12, // Maior elevação para destaque
-    borderWidth: 4, // Borda mais grossa
-    borderColor: COLORS.primaryLight, // Borda clara
-    shadowColor: COLORS.primary, // Sombra na cor principal
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 25,
+    ...SHADOWS.medium,
+    elevation: 6,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderWidth: 2,
+    borderColor: COLORS.primaryLight,
+    width: "100%",
+    minHeight: 50,
   },
   ocrButtonDisabled: {
-    backgroundColor: COLORS.textLight, // Cinza claro quando desabilitado
-    elevation: 4,
+    backgroundColor: COLORS.textLight,
     opacity: 0.6,
-    borderColor: COLORS.border, // Borda neutra quando desabilitado
+  },
+  ocrButtonText: {
+    ...TEXT_STYLES.bodyMedium,
+    color: COLORS.textWhite,
+    fontWeight: "700",
+    marginLeft: SPACING.md,
+    letterSpacing: 0.8,
+    fontSize: 16,
   },
 
-  // Botões de ação
-  actionButtonsContainer: {
-    flexDirection: "row",
-    marginBottom: SPACING.lg,
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.md,
-  },
-  mapButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    borderRadius: 22,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
+  // Rodapé
+  footerContainer: {
     backgroundColor: COLORS.cardBackground,
-    elevation: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mapButtonText: {
-    ...TEXT_STYLES.buttonText,
+    paddingHorizontal: 0,
+    paddingVertical: SPACING.sm,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.primaryLight,
+    ...SHADOWS.medium,
+    elevation: 8,
+    width: "100%",
   },
   newsButton: {
-    flex: 1,
     backgroundColor: COLORS.primary,
-    borderRadius: 22,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
+    borderRadius: 0,
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.xl,
+    elevation: 0,
+    borderWidth: 0,
+    width: "100%",
+    minHeight: 70,
+  },
+  newsButtonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    ...SHADOWS.light,
+    justifyContent: "space-between",
+    paddingVertical: SPACING.sm,
   },
-  newsButtonText: {
-    ...TEXT_STYLES.buttonText,
+  newsIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: SPACING.lg,
+  },
+  newsTextContainer: {
+    flex: 1,
+    marginLeft: SPACING.sm,
+  },
+  newsButtonTitle: {
+    ...TEXT_STYLES.title,
     color: COLORS.iconWhite,
-    fontWeight: "bold",
+    fontWeight: "700",
+    fontSize: 18,
+  },
+  newsButtonSubtitle: {
+    ...TEXT_STYLES.body,
+    color: "rgba(255, 255, 255, 0.9)",
+    fontWeight: "400",
+    marginTop: 2,
+  },
+  newsArrow: {
+    opacity: 0.8,
   },
 
   // Cards das unidades
@@ -868,5 +920,90 @@ const styles = StyleSheet.create({
     ...TEXT_STYLES.descriptionText,
     textAlign: "center",
     lineHeight: 20,
+  },
+
+  // Container de boas-vindas
+  welcomeContainer: {
+    flex: 1,
+    width: "100%",
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xxxl,
+  },
+  welcomeSection: {
+    alignItems: "center",
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+  },
+  welcomeIcon: {
+    marginBottom: SPACING.md,
+  },
+  welcomeTitle: {
+    ...TEXT_STYLES.sectionTitle,
+    color: COLORS.textPrimary,
+    textAlign: "center",
+    marginBottom: SPACING.sm,
+  },
+  welcomeSubtitle: {
+    ...TEXT_STYLES.bodyText,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    paddingHorizontal: SPACING.md,
+  },
+
+  // Cards informativos
+  infoCardsContainer: {
+    marginBottom: SPACING.xl,
+  },
+  infoCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: SPACING.lg,
+    marginBottom: SPACING.md,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    ...SHADOWS.light,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  infoCardTitle: {
+    ...TEXT_STYLES.infoText,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.xs,
+    marginLeft: SPACING.md,
+    flex: 1,
+  },
+  infoCardText: {
+    ...TEXT_STYLES.captionText,
+    color: COLORS.textSecondary,
+    marginLeft: SPACING.md,
+    flex: 1,
+    marginTop: -SPACING.xs,
+  },
+
+  // Dicas úteis
+  tipsContainer: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: SPACING.lg,
+    ...SHADOWS.light,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+  },
+  tipsTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontFamily: FONTS.bold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
+    fontWeight: "600",
+  },
+  tipsText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+    marginBottom: SPACING.xs,
   },
 });

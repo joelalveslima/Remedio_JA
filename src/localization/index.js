@@ -21,7 +21,7 @@ const texts = {
   ocrSuccess: "Medicamento encontrado!",
 
   // Botões
-  viewOnMap: "Ver no mapa",
+  map: "MAPA",
   call: "Ligar",
   back: "Voltar",
   home: "Início",
@@ -34,13 +34,14 @@ const texts = {
   orderedByDistance: "Ordenadas por distância",
 
   // Telas
-  unitDetails: "Detalhes da Unidade",
+  unitDetails: "Detalhes",
   medicines: "Remédios Disponíveis",
   importantInfo: "Informações Importantes",
 
   // Resultados
-  noUnitsFound: "Nenhuma unidade encontrada",
-  noUnitsFoundSubtitle: 'Não há unidades com "{search}" disponível no momento',
+  noUnitsFound: "Medicamento não encontrado",
+  noUnitsFoundSubtitle:
+    'O medicamento "{search}" não está disponível nas unidades próximas. Tente verificar a grafia ou consulte outras opções.',
   searchInstructions:
     "Digite o nome do remédio para encontrar unidades que o possuem",
   available: "Disponível",
@@ -60,7 +61,7 @@ const texts = {
     "Erro ao solicitar permissão de localização - usando distâncias estimadas",
 
   // Feed de notícias
-  healthNews: "Feeds de Notícias",
+  healthNews: "Notícias",
   newsSubtitle: "Últimas informações sobre saúde pública",
   readMore: "Ler mais",
   newsCategory: "Categoria",

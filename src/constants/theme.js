@@ -1,4 +1,6 @@
 // Tema centralizado do app - modifique aqui para atualizar todo o app
+import { Platform } from "react-native";
+
 export const COLORS = {
   // Cores principais - Mantidas
   primary: "#009900",
@@ -41,23 +43,54 @@ export const COLORS = {
 };
 
 export const FONTS = {
-  // Fontes Open Sans
-  regular: "OpenSans_400Regular",
-  semiBold: "OpenSans_600SemiBold",
-  bold: "OpenSans_700Bold",
+  // Fontes nativas do sistema - Modernas e otimizadas para cada plataforma
+  light: Platform.select({
+    ios: "SF Pro Display", // San Francisco - fonte nativa do iOS
+    android: "Roboto-Light", // Roboto Light - fonte nativa do Android
+    default: "System",
+  }),
+  regular: Platform.select({
+    ios: "SF Pro Display", // San Francisco Regular
+    android: "Roboto", // Roboto Regular
+    default: "System",
+  }),
+  medium: Platform.select({
+    ios: "SF Pro Display", // San Francisco Medium
+    android: "Roboto-Medium", // Roboto Medium
+    default: "System",
+  }),
+  semiBold: Platform.select({
+    ios: "SF Pro Display", // San Francisco Semibold
+    android: "Roboto-Medium", // Roboto Medium (mais próximo)
+    default: "System",
+  }),
+  bold: Platform.select({
+    ios: "SF Pro Display", // San Francisco Bold
+    android: "Roboto-Bold", // Roboto Bold
+    default: "System",
+  }),
+
+  // Fontes de sistema como fallback universal
+  system: Platform.select({
+    ios: "System",
+    android: "System",
+    default: "System",
+  }),
 };
 
 export const FONT_SIZES = {
-  // Tamanhos de fonte padronizados
-  xs: 11,
-  sm: 12,
-  md: 13,
-  base: 14,
-  lg: 16,
-  xl: 18,
-  xxl: 20,
-  title: 24,
-  headerTitle: 28,
+  // Sistema de tipografia escalável e moderno
+  xs: 10, // Labels pequenos
+  sm: 12, // Texto secundário
+  base: 14, // Texto padrão (mais legível)
+  md: 15, // Texto médio
+  lg: 16, // Texto importante
+  xl: 18, // Subtítulos
+  xxl: 20, // Títulos seção
+  h3: 22, // Títulos h3
+  h2: 24, // Títulos h2
+  h1: 28, // Títulos principais
+  display: 32, // Texto de destaque
 };
 
 export const ICON_SIZES = {
@@ -109,95 +142,195 @@ export const SHADOWS = {
   },
 };
 
-// Estilos de texto padronizados
+// Estilos de texto padronizados com tipografia moderna
 export const TEXT_STYLES = {
+  // Headers e títulos principais
   headerTitle: {
-    fontSize: FONT_SIZES.headerTitle,
+    fontSize: FONT_SIZES.h2,
     fontFamily: FONTS.bold,
     color: COLORS.textWhite,
-    letterSpacing: 1,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    lineHeight: FONT_SIZES.h2 * 1.2,
   },
   screenTitle: {
-    fontSize: FONT_SIZES.xxl,
+    fontSize: FONT_SIZES.h2,
     fontFamily: FONTS.bold,
     color: COLORS.textWhite,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
+
+  // Títulos de cards e seções
   cardTitle: {
     fontSize: FONT_SIZES.lg,
-    fontFamily: FONTS.bold,
-    color: COLORS.primary,
-    fontWeight: "bold",
+    fontFamily: FONTS.semiBold,
+    color: COLORS.textPrimary,
+    fontWeight: "600",
+    lineHeight: FONT_SIZES.lg * 1.3,
   },
   sectionTitle: {
     fontSize: FONT_SIZES.xl,
-    fontFamily: FONTS.bold,
+    fontFamily: FONTS.semiBold,
     color: COLORS.primary,
-    fontWeight: "bold",
+    fontWeight: "600",
+    letterSpacing: 0.2,
+    lineHeight: FONT_SIZES.xl * 1.25,
   },
   unitName: {
-    fontSize: FONT_SIZES.title,
+    fontSize: FONT_SIZES.h2,
     fontFamily: FONTS.bold,
     color: COLORS.primary,
-    fontWeight: "bold",
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    lineHeight: FONT_SIZES.h2 * 1.2,
   },
+
+  // Textos de conteúdo
   bodyText: {
     fontSize: FONT_SIZES.base,
     fontFamily: FONTS.regular,
     color: COLORS.textPrimary,
-    lineHeight: 20, // Melhor espaçamento entre linhas
+    fontWeight: "400",
+    lineHeight: FONT_SIZES.base * 1.5, // Melhor espaçamento
+    letterSpacing: 0.1,
   },
+  bodyTextLarge: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.regular,
+    color: COLORS.textPrimary,
+    fontWeight: "400",
+    lineHeight: FONT_SIZES.md * 1.4,
+    letterSpacing: 0.1,
+  },
+
+  // Textos informativos
   infoText: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.medium,
+    color: COLORS.textPrimary,
+    fontWeight: "500",
+    lineHeight: FONT_SIZES.md * 1.3,
+  },
+  importantText: {
     fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.semiBold,
     color: COLORS.textPrimary,
-    fontWeight: "bold",
+    fontWeight: "600",
+    lineHeight: FONT_SIZES.lg * 1.3,
   },
+
+  // Textos de botões
   buttonText: {
-    fontSize: FONT_SIZES.lg,
+    fontSize: FONT_SIZES.md,
     fontFamily: FONTS.semiBold,
     color: COLORS.primary,
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
   buttonTextWhite: {
-    fontSize: FONT_SIZES.base,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.textWhite,
-  },
-  locationText: {
-    fontSize: FONT_SIZES.sm,
-    fontFamily: FONTS.regular,
-    color: COLORS.textWhite,
-    opacity: 0.9,
-  },
-  distanceText: {
     fontSize: FONT_SIZES.md,
     fontFamily: FONTS.semiBold,
-    color: COLORS.primary,
-    fontWeight: "bold",
+    color: COLORS.textWhite,
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
-  statusText: {
-    fontSize: FONT_SIZES.md,
-    fontFamily: FONTS.semiBold,
-    fontWeight: "bold",
-  },
-  timeText: {
-    fontSize: FONT_SIZES.sm,
-    fontFamily: FONTS.semiBold,
-    color: COLORS.textSecondary,
-    fontWeight: "normal",
-  },
-  medicineText: {
+  buttonTextLarge: {
     fontSize: FONT_SIZES.lg,
     fontFamily: FONTS.semiBold,
+    color: COLORS.textWhite,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+
+  // Textos de localização e status
+  locationText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.medium,
+    color: COLORS.textWhite,
+    fontWeight: "500",
+    opacity: 0.9,
+    letterSpacing: 0.2,
+  },
+  distanceText: {
+    fontSize: FONT_SIZES.base,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.primary,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+  },
+  statusText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.medium,
+    fontWeight: "500",
+    letterSpacing: 0.2,
+  },
+
+  // Textos de tempo e data
+  timeText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.textSecondary,
+    fontWeight: "400",
+    lineHeight: FONT_SIZES.sm * 1.3,
+  },
+  dateText: {
+    fontSize: FONT_SIZES.xs,
+    fontFamily: FONTS.regular,
+    color: COLORS.textLight,
+    fontWeight: "400",
+    letterSpacing: 0.1,
+  },
+
+  // Textos específicos
+  medicineText: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.medium,
     color: COLORS.textPrimary,
+    fontWeight: "500",
+    lineHeight: FONT_SIZES.md * 1.3,
   },
   descriptionText: {
     fontSize: FONT_SIZES.base,
     fontFamily: FONTS.regular,
     color: COLORS.textSecondary,
+    fontWeight: "400",
+    lineHeight: FONT_SIZES.base * 1.4,
+    letterSpacing: 0.1,
+  },
+  captionText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.textSecondary,
+    fontWeight: "400",
+    lineHeight: FONT_SIZES.sm * 1.3,
+    letterSpacing: 0.1,
   },
   smallText: {
     fontSize: FONT_SIZES.xs,
     fontFamily: FONTS.regular,
     color: COLORS.textLight,
+    fontWeight: "400",
+    letterSpacing: 0.1,
+  },
+
+  // Textos de feedback e notificações
+  successText: {
+    fontSize: FONT_SIZES.base,
+    fontFamily: FONTS.medium,
+    color: COLORS.success,
+    fontWeight: "500",
+  },
+  errorText: {
+    fontSize: FONT_SIZES.base,
+    fontFamily: FONTS.medium,
+    color: COLORS.error,
+    fontWeight: "500",
+  },
+  warningText: {
+    fontSize: FONT_SIZES.base,
+    fontFamily: FONTS.medium,
+    color: COLORS.warning,
+    fontWeight: "500",
   },
 };

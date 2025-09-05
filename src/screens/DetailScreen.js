@@ -6,25 +6,25 @@ import {
   TouchableOpacity,
   FlatList,
   Linking,
+  Platform,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import texts from "../localization";
-import {
-  COLORS,
-  FONT_SIZES,
-  SPACING,
-  SHADOWS,
-  TEXT_STYLES,
-} from "../constants/theme";
+import { COLORS, SPACING, SHADOWS, TEXT_STYLES } from "../constants/theme";
 import { calculateDistance } from "../utils/locationUtils";
+import { getResponsiveConfig } from "../utils/safeAreaUtils";
 
 export default function DetailScreen({ navigation, route }) {
-  const { unidade } = route.params;
+  const { unidade, medicamentoPesquisado } = route.params;
   const [userLocation, setUserLocation] = useState(null);
   const [distanciaCalculada, setDistanciaCalculada] = useState(null);
   const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
   const [locationWatcher, setLocationWatcher] = useState(null);
+
+  // Configuração responsiva para safe area
+  const safeAreaConfig = getResponsiveConfig();
 
   useEffect(() => {
     getCurrentLocation();
@@ -156,37 +156,33 @@ export default function DetailScreen({ navigation, route }) {
     Linking.openURL("tel:+551133334444");
   };
 
-  // Função para renderizar cada item de remédio
-  const renderMedicineItem = ({ item, index }) => (
-    <View style={styles.medicineItem}>
-      <View style={styles.medicineInfo}>
-        <Text style={styles.medicineName}>{item.remedio}</Text>
-        <Text
-          style={[
-            styles.medicineStatus,
-            { color: item.disponivel ? "#21796A" : "#B00020" },
-          ]}
-        >
-          {item.disponivel ? texts.available : texts.unavailable}
+  // Função para renderizar informações sobre documentos necessários
+  const renderInformacoesDocumentos = () => {
+    return (
+      <View style={styles.infoCardDestaque}>
+        <Text style={styles.sectionTitleDestaque}>
+          <Ionicons name="document-text" size={24} color={COLORS.primary} />{" "}
+          Documentos Necessários
+        </Text>
+
+        <Text style={styles.infoDescriptionDestaque}>
+          📄{" "}
+          <Text style={styles.documentoTitulo}>Documentos obrigatórios:</Text>
+          {"\n"}• Documento de identidade com foto (RG, CNH ou Passaporte){"\n"}
+          • Cartão SUS (Sistema Único de Saúde){"\n"}• CPF (pode estar no RG)
+          {"\n\n"}
+          💊 <Text style={styles.documentoTitulo}>Para medicamentos:</Text>
+          {"\n"}• Receita médica (original e dentro da validade){"\n"}• Receita
+          especial para medicamentos controlados{"\n\n"}
+          ⚠️{" "}
+          <Text style={styles.documentoTitulo}>Informações importantes:</Text>
+          {"\n"}• Disponibilidade sujeita a alterações{"\n"}• Consulte horário
+          de funcionamento{"\n"}• Ligue antes de se deslocar para confirmar
+          estoque
         </Text>
       </View>
-      <Ionicons
-        name={item.disponivel ? "checkmark-circle" : "close-circle"}
-        size={24}
-        color={item.disponivel ? "#21796A" : "#B00020"}
-      />
-    </View>
-  );
-
-  // Função para renderizar o header da lista de medicamentos
-  // Nome do Remdio disponivel
-  const renderMedicineHeader = () => (
-    <Text style={styles.sectionTitle}>
-      <Ionicons name="medical" size={20} color={COLORS.iconPrimary} />
-      {""}
-      {texts.medicines}
-    </Text>
-  );
+    );
+  };
 
   // Função para renderizar as informações principais
   const renderMainInfo = () => (
@@ -221,7 +217,7 @@ export default function DetailScreen({ navigation, route }) {
             onPress={handleOpenMaps}
           >
             <Ionicons name="navigate" size={20} color={COLORS.iconPrimary} />
-            <Text style={styles.actionButtonText}>{texts.viewOnMap}</Text>
+            <Text style={styles.actionButtonText}>{texts.map}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
@@ -231,75 +227,102 @@ export default function DetailScreen({ navigation, route }) {
         </View>
       </View>
 
-      {/* Disponibilidade de remédios */}
-      <View style={styles.medicineCard}>{renderMedicineHeader()}</View>
+      {/* Informações sobre documentos necessários */}
+      {renderInformacoesDocumentos()}
     </>
   );
 
-  // Função para renderizar o footer com informações adicionais
-  const renderFooter = () => (
-    <View style={styles.footerContainer}>
-      <View style={styles.infoCard}>
-        <Text style={styles.sectionTitle}>
-          <Ionicons
-            name="information-circle"
-            size={20}
-            color={COLORS.iconPrimary}
-          />{" "}
-          {texts.importantInfo}
-        </Text>
-
-        <Text style={styles.infoDescription}>
-          • Leve um documento de identidade com foto{"\n"}• Cartão SUS é
-          obrigatório{"\n"}• Receita médica necessária para medicamentos
-          controlados{"\n"}• Disponibilidade sujeita a alterações
-        </Text>
+  // Função para renderizar o footer (apenas se veio de pesquisa)
+  const renderFooter = () => {
+    return (
+      <View style={styles.footerContainer}>
+        <View style={styles.infoCard}>
+          <Text style={styles.infoDescription}>
+            💡 Para informações sobre medicamentos específicos disponíveis,
+            entre em contato diretamente com a unidade.
+          </Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+    <View
+      style={[styles.container, { paddingTop: safeAreaConfig.safeAreaTop }]}
+    >
+      <StatusBar
+        style="light"
+        backgroundColor={COLORS.primary}
+        translucent={safeAreaConfig.isTranslucent}
+      />
+
+      {/* Header melhorado */}
+      <View
+        style={[
+          styles.header,
+          {
+            marginTop:
+              Platform.OS === "android" ? -safeAreaConfig.safeAreaTop : 0,
+          },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={{ marginRight: 16 }}
+          style={styles.headerBackButton}
+          activeOpacity={0.7}
         >
           <Ionicons name="chevron-back" size={22} color={COLORS.iconWhite} />
+          <Text style={styles.headerBackText}>{texts.back}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{texts.unitDetails}</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text
+            style={styles.headerTitle}
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.8}
+          >
+            {texts.unitDetails}
+          </Text>
+        </View>
+        <View style={styles.headerSpacer} />
       </View>
 
       <FlatList
-        data={unidade.disponibilidade}
-        keyExtractor={(item, index) => `${item.remedio}-${index}`}
-        renderItem={renderMedicineItem}
+        data={[]} // Lista vazia - não mostra mais medicamentos
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={() => null}
         ListHeaderComponent={renderMainInfo}
         ListFooterComponent={renderFooter}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
         style={styles.content}
-        ItemSeparatorComponent={() => <View style={{ height: 1 }} />}
         bounces={true}
         scrollEnabled={true}
         nestedScrollEnabled={true}
       />
 
-      {/* Botões de navegação inferior */}
+      {/* Botões de navegação inferior melhorados */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity
-          style={styles.bottomButton}
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
         >
-          <Ionicons name="chevron-back" size={28} color={COLORS.iconWhite} />
+          <View style={styles.buttonContent}>
+            <Ionicons name="chevron-back" size={24} color={COLORS.iconWhite} />
+            <Text style={styles.buttonText}>{texts.back}</Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.bottomButton}
+          style={styles.homeButton}
           onPress={() => navigation.navigate("Home")}
+          activeOpacity={0.8}
         >
-          <Ionicons name="home" size={24} color={COLORS.iconWhite} />
+          <View style={styles.buttonContent}>
+            <Ionicons name="home" size={22} color={COLORS.iconWhite} />
+            <Text style={styles.buttonText}>{texts.home}</Text>
+          </View>
         </TouchableOpacity>
       </View>
     </View>
@@ -313,19 +336,48 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  // Header
+  // Header melhorado
   header: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.primary,
-    paddingTop: 30, // Ajustado para status bar não translúcida
-    paddingBottom: SPACING.xl,
+    paddingVertical: SPACING.xxxl,
     paddingHorizontal: SPACING.xl,
+    borderBottomLeftRadius: SPACING.xxxl,
+    borderBottomRightRadius: SPACING.xxxl,
+    marginBottom: SPACING.lg,
     ...SHADOWS.heavy,
+    // Margem top negativa para sobrepor a safe area quando necessário
+    marginTop: Platform.OS === "android" ? -16 : 0,
+  },
+  headerBackButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    minWidth: 80,
+  },
+  headerBackText: {
+    ...TEXT_STYLES.captionText,
+    color: COLORS.iconWhite,
+    marginLeft: SPACING.xs,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     ...TEXT_STYLES.headerTitle,
-    flex: 1,
+    textAlign: "center",
+    numberOfLines: 1,
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.8,
+  },
+  headerSpacer: {
+    width: 80, // Mesmo tamanho do botão back para centralizar o título
   },
 
   // Conteúdo
@@ -348,8 +400,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   unitName: {
-    ...TEXT_STYLES.sectionTitle,
-    fontSize: FONT_SIZES.xxl,
+    ...TEXT_STYLES.unitName,
     textAlign: "center",
     marginBottom: SPACING.lg,
   },
@@ -442,24 +493,72 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Navegação inferior
+  // Card de informações importantes em destaque
+  infoCardDestaque: {
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: SPACING.xl,
+    padding: SPACING.xl,
+    margin: SPACING.md,
+    ...SHADOWS.medium,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  sectionTitleDestaque: {
+    ...TEXT_STYLES.sectionTitle,
+    color: COLORS.primary,
+    marginBottom: SPACING.lg,
+  },
+  infoDescriptionDestaque: {
+    ...TEXT_STYLES.bodyText,
+    color: COLORS.textPrimary,
+  },
+  documentoTitulo: {
+    fontWeight: "bold",
+    color: COLORS.primary,
+  },
+
+  // Navegação inferior melhorada
   bottomNavigation: {
     flexDirection: "row",
     backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.xxxl + 8,
-    paddingBottom: SPACING.sm,
-    justifyContent: "space-around",
-    ...SHADOWS.medium,
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.xl,
+    paddingBottom: SPACING.lg + (Platform.OS === "ios" ? 34 : 16), // Safe area bottom dinâmico
+    justifyContent: "space-between",
+    ...SHADOWS.heavy,
+    gap: SPACING.md,
   },
-  bottomButton: {
+  backButton: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: SPACING.sm, // Reduzido de md para sm
-    paddingHorizontal: SPACING.sm, // Reduzido de md para sm
-    borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-    minWidth: 44, // Reduzido de 48 para 44
-    minHeight: 44, // Reduzido de 48 para 44
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: 25,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    ...SHADOWS.light,
+  },
+  homeButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: 25,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    ...SHADOWS.light,
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: {
+    ...TEXT_STYLES.buttonTextWhite,
+    color: COLORS.iconWhite,
+    marginLeft: SPACING.sm,
+    textTransform: "uppercase",
   },
 });

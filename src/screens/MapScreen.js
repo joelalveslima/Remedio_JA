@@ -6,20 +6,20 @@ import {
   TouchableOpacity,
   FlatList,
   Linking,
+  Platform,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import texts from "../localization";
-import {
-  COLORS,
-  FONT_SIZES,
-  SPACING,
-  SHADOWS,
-  TEXT_STYLES,
-} from "../constants/theme";
+import { COLORS, SPACING, SHADOWS, TEXT_STYLES } from "../constants/theme";
 import { calculateDistance } from "../utils/locationUtils";
+import { getResponsiveConfig } from "../utils/safeAreaUtils";
 
 export default function MapScreen({ navigation, route }) {
+  // Configuração responsiva para safe area
+  const safeAreaConfig = getResponsiveConfig();
+
   // Verificação de segurança para parâmetros da rota
   if (!route.params) {
     console.error("❌ MapScreen: Parâmetros de rota não encontrados");
@@ -198,16 +198,37 @@ export default function MapScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { paddingTop: safeAreaConfig.safeAreaTop }]}
+    >
+      <StatusBar
+        style="light"
+        backgroundColor={COLORS.primary}
+        translucent={safeAreaConfig.isTranslucent}
+      />
+
       {/* Header */}
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            marginTop:
+              Platform.OS === "android" ? -safeAreaConfig.safeAreaTop : 0,
+          },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={{ marginRight: 16 }}
         >
           <Ionicons name="chevron-back" size={22} color={COLORS.iconWhite} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text
+          style={styles.headerTitle}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+          minimumFontScale={0.8}
+        >
           {remedioFiltro ? `Mapa - ${remedioFiltro}` : "Todas as Unidades"}
         </Text>
       </View>
@@ -380,14 +401,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.primary,
-    paddingTop: 30, // Ajustado para status bar não translúcida
-    paddingBottom: SPACING.xl,
+    paddingVertical: SPACING.xxxl,
     paddingHorizontal: SPACING.xl,
+    borderBottomLeftRadius: SPACING.xxxl,
+    borderBottomRightRadius: SPACING.xxxl,
+    marginBottom: SPACING.lg,
     ...SHADOWS.heavy,
+    // Margem top negativa para sobrepor a safe area quando necessário
+    marginTop: Platform.OS === "android" ? -16 : 0,
   },
   headerTitle: {
     ...TEXT_STYLES.headerTitle,
     flex: 1,
+    textAlign: "center",
+    numberOfLines: 1,
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.8,
   },
 
   // Mapa

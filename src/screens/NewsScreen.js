@@ -5,24 +5,34 @@ import {
   View,
   TouchableOpacity,
   FlatList,
+  Platform,
+  ScrollView,
+  Dimensions,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import texts from "../localization";
 import {
   COLORS,
-  FONT_SIZES,
   SPACING,
   SHADOWS,
   TEXT_STYLES,
+  ICON_SIZES,
 } from "../constants/theme";
 import {
   getHealthNewsOrdered,
   getCategoryColor,
   formatNewsDate,
 } from "../data/healthNews";
+import { getResponsiveConfig } from "../utils/safeAreaUtils";
+
+const { width } = Dimensions.get("window");
 
 export default function NewsScreen({ navigation }) {
   const [expandedNewsId, setExpandedNewsId] = useState(null);
+
+  // Configuração responsiva para safe area
+  const safeAreaConfig = getResponsiveConfig();
 
   // Obter todas as notícias (não apenas as 3 primeiras)
   const healthNewsData = getHealthNewsOrdered(10); // Mostra até 10 notícias
@@ -31,91 +41,138 @@ export default function NewsScreen({ navigation }) {
     setExpandedNewsId(expandedNewsId === newsId ? null : newsId);
   };
 
-  const renderNewsItem = ({ item }) => {
+  const renderNewsItem = ({ item, index }) => {
     const isExpanded = expandedNewsId === item.id;
+    const categoryColor = getCategoryColor(item.category);
 
     return (
-      <TouchableOpacity
-        style={styles.newsCard}
-        onPress={() => handleNewsPress(item.id)}
-        activeOpacity={0.7}
+      <View
+        style={[styles.newsCard, { marginTop: index === 0 ? 0 : SPACING.md }]}
       >
+        {/* Header com categoria e data */}
         <View style={styles.newsHeader}>
-          <View style={styles.newsCategory}>
+          <View style={styles.headerLeft}>
             <View
-              style={[
-                styles.categoryDot,
-                { backgroundColor: getCategoryColor(item.category) },
-              ]}
-            />
-            <Text style={styles.categoryText}>{item.category}</Text>
+              style={[styles.categoryBadge, { backgroundColor: categoryColor }]}
+            >
+              <Text style={styles.categoryText}>{item.category}</Text>
+            </View>
+            {/* Indicador de prioridade na mesma linha da categoria */}
+            {item.priority === "high" && (
+              <View style={styles.priorityIndicator}>
+                <Ionicons name="alert-circle" size={12} color={COLORS.error} />
+                <Text style={styles.priorityText}>Importante</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.newsDate}>{formatNewsDate(item.date)}</Text>
         </View>
 
+        {/* Título */}
         <Text style={styles.newsTitle}>{item.title}</Text>
-        <Text style={styles.newsSummary}>
+
+        {/* Conteúdo */}
+        <Text style={styles.newsSummary} numberOfLines={isExpanded ? 0 : 3}>
           {isExpanded ? item.fullText : item.summary}
         </Text>
 
-        {!isExpanded && (
-          <View style={styles.readMoreContainer}>
-            <Text style={styles.readMoreText}>{texts.readMore}</Text>
-            <Ionicons name="chevron-down" size={16} color={COLORS.primary} />
-          </View>
-        )}
-
-        {isExpanded && (
-          <View style={styles.readMoreContainer}>
-            <Text style={styles.readMoreText}>Recolher</Text>
-            <Ionicons name="chevron-up" size={16} color={COLORS.primary} />
-          </View>
-        )}
-      </TouchableOpacity>
+        {/* Botão de expansão */}
+        <TouchableOpacity
+          style={styles.expandButton}
+          onPress={() => handleNewsPress(item.id)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.expandButtonText}>
+            {isExpanded ? "Ver menos" : "Ler mais"}
+          </Text>
+          <Ionicons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={16}
+            color={COLORS.primary}
+          />
+        </TouchableOpacity>
+      </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+    <View
+      style={[styles.container, { paddingTop: safeAreaConfig.safeAreaTop }]}
+    >
+      <StatusBar
+        style="light"
+        backgroundColor={COLORS.primary}
+        translucent={safeAreaConfig.isTranslucent}
+      />
+
+      {/* Header moderno */}
+      <View
+        style={[
+          styles.header,
+          {
+            marginTop:
+              Platform.OS === "android" ? -safeAreaConfig.safeAreaTop : 0,
+          },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={{ marginRight: 16 }}
+          style={styles.headerBackButton}
+          activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={22} color={COLORS.iconWhite} />
+          <Ionicons name="chevron-back" size={24} color={COLORS.textWhite} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{texts.healthNews}</Text>
+
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Notícias</Text>
+          <Text style={styles.headerSubtitle}>Saúde & Bem-estar</Text>
+        </View>
+
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.subtitle}>{texts.newsSubtitle}</Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        
 
-        <FlatList
-          showsVerticalScrollIndicator={false}
-          data={healthNewsData}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderNewsItem}
-          contentContainerStyle={styles.newsListContainer}
-          ItemSeparatorComponent={() => <View style={{ height: SPACING.md }} />}
-        />
-      </View>
+        {/* Title Section */}
+        <View style={styles.titleSection}>
+          <Text style={styles.sectionTitle}>Últimas Atualizações</Text>
+          <Text style={styles.sectionSubtitle}>
+            Fique por dentro das campanhas e novidades da saúde pública
+          </Text>
+        </View>
 
-      {/* Botões de navegação inferior */}
+        {/* News List */}
+        <View style={styles.newsContainer}>
+          {healthNewsData.map((item, index) => (
+            <React.Fragment key={item.id}>
+              {renderNewsItem({ item, index })}
+            </React.Fragment>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Bottom Navigation moderno */}
       <View style={styles.bottomNavigation}>
         <TouchableOpacity
-          style={styles.bottomButton}
+          style={styles.navButton}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
         >
-          <Ionicons name="chevron-back" size={28} color={COLORS.iconWhite} />
+          <Ionicons name="chevron-back" size={20} color={COLORS.textWhite} />
+          <Text style={styles.navButtonText}>Voltar</Text>
         </TouchableOpacity>
 
+        <View style={styles.navDivider} />
+
         <TouchableOpacity
-          style={styles.bottomButton}
+          style={styles.navButton}
           onPress={() => navigation.navigate("Home")}
+          activeOpacity={0.8}
         >
-          <Ionicons name="home" size={24} color={COLORS.iconWhite} />
+          <Ionicons name="home-outline" size={20} color={COLORS.textWhite} />
+          <Text style={styles.navButtonText}>Início</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -129,119 +186,230 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  // Header
+  // Header moderno
   header: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.primary,
-    paddingTop: 30, // Ajustado para status bar não translúcida
+    paddingTop: SPACING.xxxl,
     paddingBottom: SPACING.xl,
-    paddingHorizontal: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
     ...SHADOWS.heavy,
+    elevation: 12,
+    marginBottom: SPACING.lg,
+  },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerContent: {
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: SPACING.md,
   },
   headerTitle: {
-    ...TEXT_STYLES.headerTitle,
-    flex: 1,
+    ...TEXT_STYLES.title,
+    color: COLORS.textWhite,
+    fontWeight: "700",
+    fontSize: 20,
+  },
+  headerSubtitle: {
+    ...TEXT_STYLES.caption,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 14,
+    marginTop: 2,
+  },
+  headerSpacer: {
+    width: 40, // Mesmo tamanho do botão back para manter centralização
   },
 
   // Content
   content: {
     flex: 1,
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
-  },
-  subtitle: {
-    ...TEXT_STYLES.descriptionText,
-    marginBottom: SPACING.xl,
-    textAlign: "center",
-    fontSize: FONT_SIZES.base,
   },
 
-  // Lista de notícias
-  newsListContainer: {
-    paddingBottom: SPACING.xl,
+  // Stats Section
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xl,
   },
-  newsCard: {
+  statCard: {
+    flex: 1,
     backgroundColor: COLORS.cardBackground,
     borderRadius: 12,
-    padding: SPACING.xl,
+    padding: SPACING.md,
+    alignItems: "center",
+    marginHorizontal: SPACING.xs,
     ...SHADOWS.light,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.primaryLight,
+  },
+  statNumber: {
+    ...TEXT_STYLES.title,
+    color: COLORS.primary,
+    fontWeight: "700",
+    fontSize: 24,
+  },
+  statLabel: {
+    ...TEXT_STYLES.caption,
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    marginTop: 4,
+  },
+
+  // Title Section
+  titleSection: {
+    marginBottom: SPACING.lg,
+  },
+  sectionTitle: {
+    ...TEXT_STYLES.title,
+    color: COLORS.textPrimary,
+    fontWeight: "700",
+    fontSize: 22,
+    marginBottom: SPACING.xs,
+  },
+  sectionSubtitle: {
+    ...TEXT_STYLES.body,
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+
+  // News Container
+  newsContainer: {
+    paddingBottom: SPACING.xxxl,
+  },
+
+  // News Card modernizada
+  newsCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: SPACING.lg,
+    ...SHADOWS.medium,
+    borderWidth: 1,
+    borderColor: COLORS.primaryLight,
+    position: "relative",
   },
   newsHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: SPACING.md,
   },
-  newsCategory: {
+  headerLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    flexWrap: "wrap",
+    gap: SPACING.sm,
   },
-  categoryDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: SPACING.sm,
+  categoryBadge: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: 20,
+    alignSelf: "flex-start",
   },
   categoryText: {
-    ...TEXT_STYLES.captionText,
-    fontSize: FONT_SIZES.sm,
-    fontWeight: "bold",
-    color: COLORS.textSecondary,
+    ...TEXT_STYLES.caption,
+    color: COLORS.textWhite,
+    fontWeight: "600",
+    fontSize: 12,
   },
   newsDate: {
-    ...TEXT_STYLES.captionText,
-    fontSize: FONT_SIZES.sm,
+    ...TEXT_STYLES.caption,
     color: COLORS.textLight,
+    fontSize: 12,
   },
   newsTitle: {
-    ...TEXT_STYLES.cardTitle,
-    fontSize: FONT_SIZES.lg,
+    ...TEXT_STYLES.subtitle,
+    color: COLORS.textPrimary,
+    fontWeight: "700",
+    fontSize: 18,
     marginBottom: SPACING.md,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   newsSummary: {
-    ...TEXT_STYLES.descriptionText,
-    fontSize: FONT_SIZES.base,
-    lineHeight: 20,
+    ...TEXT_STYLES.body,
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    lineHeight: 22,
     marginBottom: SPACING.md,
   },
-  readMoreContainer: {
+  expandButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: SPACING.sm,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryLight,
+    alignSelf: "center",
+    minWidth: 100,
   },
-  readMoreText: {
-    ...TEXT_STYLES.captionText,
+  expandButtonText: {
+    ...TEXT_STYLES.caption,
     color: COLORS.primary,
-    fontSize: FONT_SIZES.sm,
+    fontWeight: "600",
+    fontSize: 12,
     marginRight: SPACING.xs,
-    fontWeight: "bold",
+  },
+  priorityIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(244, 67, 54, 0.1)",
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(244, 67, 54, 0.2)",
+  },
+  priorityText: {
+    ...TEXT_STYLES.caption,
+    color: COLORS.error,
+    fontSize: 10,
+    fontWeight: "600",
+    marginLeft: 4,
   },
 
-  // Navegação inferior
+  // Bottom Navigation moderno
   bottomNavigation: {
     flexDirection: "row",
     backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.xxxl + 8,
-    paddingBottom: SPACING.sm,
-    justifyContent: "space-around",
-    ...SHADOWS.medium,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.md + (Platform.OS === "ios" ? 34 : 16),
+    ...SHADOWS.heavy,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.primaryLight,
   },
-  bottomButton: {
+  navButton: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: SPACING.sm, // Reduzido de md para sm
-    paddingHorizontal: SPACING.sm, // Reduzido de md para sm
-    borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-    minWidth: 44, // Reduzido de 48 para 44
-    minHeight: 44, // Reduzido de 48 para 44
+    paddingVertical: SPACING.md,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  navDivider: {
+    width: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    marginHorizontal: SPACING.md,
+  },
+  navButtonText: {
+    ...TEXT_STYLES.body,
+    color: COLORS.textWhite,
+    fontWeight: "600",
+    fontSize: 14,
+    marginLeft: SPACING.sm,
   },
 });
