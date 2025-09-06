@@ -1,17 +1,21 @@
 {
   "expo": {
     "name": "Remédio Já",
-    "slug": "Remedio_JA",
+    "slug": "remedio-ja",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#21796A"
     },
     "android": {
       "backgroundColor": "#21796A",
+      "package": "com.anonymous.remedioja",
+      "versionCode": 1,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -23,14 +27,31 @@
         "backgroundColor": "#21796A",
         "barStyle": "light-content",
         "translucent": true
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#21796A"
       }
     },
     "ios": {
       "statusBar": {
         "barStyle": "light-content"
+      },
+      "bundleIdentifier": "com.anonymous.remedioja"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "permissions": [
+      "LOCATION",
+      "CAMERA",
+      "CAMERA_ROLL"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fe8063da-8c81-4167-95bd-d065836714d7"
       }
     },
-    "web": {},
-    "permissions": ["LOCATION", "CAMERA", "CAMERA_ROLL"]
+    "owner": "joelalveslima"
   }
 }
