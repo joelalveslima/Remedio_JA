@@ -42,11 +42,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "permissions": [
-      "LOCATION",
-      "CAMERA",
-      "CAMERA_ROLL"
-    ],
+    "permissions": ["LOCATION", "CAMERA", "CAMERA_ROLL"],
     "extra": {
       "eas": {
         "projectId": "fe8063da-8c81-4167-95bd-d065836714d7"
