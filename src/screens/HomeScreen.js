@@ -9,10 +9,13 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Animated,
+  Dimensions,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
+import * as Haptics from "expo-haptics";
 import texts from "../localization";
 import {
   COLORS,
@@ -28,6 +31,15 @@ import { calculateDistance } from "../utils/locationUtils";
 import { OCRUtils } from "../utils/ocrUtils";
 import { OCRDataManager } from "../utils/ocrDataManager";
 import { getResponsiveConfig } from "../utils/safeAreaUtils";
+// Novos imports para API
+import { healthUnitsService, apiHealthCheck } from "../services/api";
+import {
+  adaptHealthUnitsFromApi,
+  combineApiWithLocalData,
+  validateApiResponse,
+  filterUnitsByMedicine,
+  normalizeSearchString,
+} from "../services/dataAdapter";
 
 export default function HomeScreen({ navigation }) {
   const [busca, setBusca] = useState("");
@@ -36,11 +48,42 @@ export default function HomeScreen({ navigation }) {
   const [locationWatcher, setLocationWatcher] = useState(null);
   const [isOCRProcessing, setIsOCRProcessing] = useState(false);
 
+  // Novos estados para API
+  const [unidadesData, setUnidadesData] = useState([]);
+  const [isLoadingUnidades, setIsLoadingUnidades] = useState(true);
+  const [apiError, setApiError] = useState(null);
+  const [isUsingApi, setIsUsingApi] = useState(false);
+
+  // Estados para animações
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
+  const [scaleAnim] = useState(new Animated.Value(0.9));
+
   // Configuração responsiva para safe area
   const safeAreaConfig = getResponsiveConfig();
 
   useEffect(() => {
     initializeLocation();
+    loadHealthUnitsData();
+
+    // Animação inicial
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
 
     return () => {
       // Limpar o watcher quando o componente for desmontado
@@ -49,6 +92,96 @@ export default function HomeScreen({ navigation }) {
       }
     };
   }, []);
+
+  /**
+   * Carrega dados das unidades da API com fallback para dados locais
+   */
+  const loadHealthUnitsData = async () => {
+    setIsLoadingUnidades(true);
+    setApiError(null);
+
+    try {
+      console.log("🔧 MODO TESTE: Usando dados locais diretamente");
+
+      // TESTE: Pular API e usar dados locais diretamente
+      const localData = unidades.map((unit) => ({
+        ...unit,
+        isDistanciaReal: false,
+        _source: "local",
+      }));
+
+      console.log("📊 Dados locais carregados:", localData.length);
+      console.log("🔍 Primeira unidade:", localData[0]);
+      console.log(
+        "💊 Medicamentos da primeira unidade:",
+        localData[0]?.disponibilidade
+      );
+
+      setUnidadesData(localData);
+      setIsUsingApi(false);
+      setApiError("Modo teste - dados locais");
+
+      return; // Pular resto da função
+
+      console.log("🏥 Carregando unidades de saúde...");
+
+      // Primeiro, testar se a API está funcionando
+      const healthCheck = await apiHealthCheck();
+
+      if (healthCheck.success) {
+        console.log("✅ API está funcionando, carregando dados...");
+
+        // Carregar unidades da API
+        const result = await healthUnitsService.getAll();
+        const validation = validateApiResponse(result);
+
+        if (validation.valid) {
+          const adaptedData = adaptHealthUnitsFromApi(
+            result.data,
+            userLocation
+          );
+          setUnidadesData(adaptedData);
+          setIsUsingApi(true);
+          console.log(`✅ ${adaptedData.length} unidades carregadas da API`);
+        } else {
+          throw new Error(validation.error);
+        }
+      } else {
+        throw new Error("API não está disponível");
+      }
+    } catch (error) {
+      console.warn(
+        "⚠️ Erro ao carregar da API, usando dados locais:",
+        error.message
+      );
+
+      // Usar dados locais como fallback
+      const localData = combineApiWithLocalData(null, unidades, userLocation);
+      console.log("📊 Dados locais carregados:", localData.length);
+      console.log("🔍 Primeira unidade local:", localData[0]);
+      setUnidadesData(localData);
+      setIsUsingApi(false);
+      setApiError("API indisponível - usando dados locais");
+    } finally {
+      setIsLoadingUnidades(false);
+    }
+  };
+
+  /**
+   * Recarrega dados quando a localização do usuário mudar
+   */
+  useEffect(() => {
+    if (userLocation && unidadesData.length > 0) {
+      // Recalcular distâncias com a nova localização
+      const updatedData = adaptHealthUnitsFromApi(
+        unidadesData
+          .filter((unit) => unit && (unit._apiData || unit.id)) // Filtrar itens válidos
+          .map((unit) => unit._apiData || unit),
+        userLocation
+      );
+      setUnidadesData(updatedData);
+    }
+  }, [userLocation]);
 
   const initializeLocation = async () => {
     try {
@@ -229,37 +362,21 @@ export default function HomeScreen({ navigation }) {
   };
 
   // Calcula distâncias reais se a localização estiver disponível
-  const unidadesComDistancia = userLocation
-    ? unidades.map((unidade) => {
-        const distanciaReal = calculateDistance(
-          userLocation.latitude,
-          userLocation.longitude,
-          unidade.latitude,
-          unidade.longitude
-        );
+  // Agora usa dados da API (unidadesData) em vez de dados locais
+  const unidadesComDistancia =
+    unidadesData.length > 0 ? unidadesData : unidades;
 
-        // Se não conseguiu calcular, usa a distância estimada do array
-        return {
-          ...unidade,
-          distancia: distanciaReal !== null ? distanciaReal : unidade.distancia,
-          distanciaCalculada: distanciaReal,
-          isDistanciaReal: distanciaReal !== null, // Só marca como real se conseguiu calcular
-        };
-      })
-    : unidades.map((unidade) => ({
-        ...unidade,
-        isDistanciaReal: false, // Flag para indicar que é distância estimada
-      }));
+  console.log(
+    "🔄 unidadesComDistancia atualizado:",
+    unidadesComDistancia.length
+  );
+  console.log(
+    "📋 Fonte dos dados:",
+    unidadesData.length > 0 ? "API/Processados" : "Locais diretos"
+  );
 
-  // Função para normalizar strings para busca segura
-  const normalizeSearchString = (str) => {
-    return str
-      .toLowerCase()
-      .normalize("NFD") // Decompor caracteres acentuados
-      .replace(/[\u0300-\u036f]/g, "") // Remover acentos
-      .replace(/[^\w\s]/g, "") // Manter apenas letras, números e espaços
-      .trim();
-  };
+  // Função para normalizar strings para busca segura - movida para dataAdapter
+  // const normalizeSearchString = (str) => { ... } - removida, usando do dataAdapter
 
   // Função para lidar com OCR
   const handleOCRScan = async () => {
@@ -366,40 +483,131 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Filtra as unidades conforme o remédio pesquisado - apenas unidades com o remédio DISPONÍVEL
-  const unidadesFiltradas =
-    busca.trim().length === 0
-      ? []
-      : unidadesComDistancia
-          .map((u) => {
-            const searchTerm = normalizeSearchString(busca);
-            const info = u.disponibilidade.find((d) => {
-              const medicineName = normalizeSearchString(d.remedio);
-              const isMatch =
-                medicineName.includes(searchTerm) && d.disponivel === true;
-              // Só inclui se o remédio existe E está disponível
-              return isMatch;
-            });
-            if (info) {
-              return {
-                ...u,
-                remedio: info.remedio,
-                disponivel: info.disponivel,
-              };
-            }
-            return null;
-          })
-          .filter(Boolean)
-          .sort((a, b) => {
-            // Ordena pela distância (seja calculada ou estimada)
-            return parseFloat(a.distancia) - parseFloat(b.distancia);
-          });
+  // FILTRO POR REMÉDIO: Mostra apenas unidades que têm o remédio pesquisado
+  const unidadesFiltradas = (() => {
+    console.log("🔍 FILTRO: Iniciando busca por remédio");
+    console.log("📝 Busca atual:", busca);
+    console.log("🏥 Total de unidades disponíveis:", unidades.length);
+
+    // Verificação de segurança: garantir que busca é uma string válida
+    if (!busca || typeof busca !== "string") {
+      console.warn("⚠️ Busca inválida:", busca);
+      return [];
+    }
+
+    // Se não há busca, retornar array vazio
+    if (busca.trim().length === 0) {
+      console.log("❌ Busca vazia, retornando array vazio");
+      return [];
+    }
+
+    // Filtrar unidades que têm o remédio pesquisado
+    const termoBusca = busca.toLowerCase().trim();
+    console.log("🔍 Procurando por:", termoBusca);
+
+    const unidadesFiltradas = unidades.filter((unidade) => {
+      // Verificação de segurança: garantir que a unidade é válida
+      if (!unidade || !unidade.nome) {
+        console.warn("⚠️ Unidade inválida encontrada:", unidade);
+        return false;
+      }
+
+      // Verificar se a unidade tem medicamentos disponíveis
+      if (
+        !unidade.disponibilidade ||
+        !Array.isArray(unidade.disponibilidade) ||
+        unidade.disponibilidade.length === 0
+      ) {
+        console.log(
+          `ℹ️ Unidade "${unidade.nome}" sem medicamentos disponíveis`
+        );
+        return false;
+      }
+
+      // Verificar se algum medicamento corresponde à busca
+      const temRemedio = unidade.disponibilidade.some((medicamento) => {
+        // Verificação de segurança: garantir que medicamento e nome existem
+        // Nota: no arquivo de dados, a propriedade se chama 'remedio', não 'nome'
+        const nomeRemedio = medicamento.remedio || medicamento.nome;
+
+        if (!medicamento || !nomeRemedio || typeof nomeRemedio !== "string") {
+          console.warn("⚠️ Medicamento inválido encontrado:", medicamento);
+          return false;
+        }
+
+        const nomeRemedioLower = nomeRemedio.toLowerCase();
+        const temNome = nomeRemedioLower.includes(termoBusca);
+
+        if (temNome) {
+          console.log(`✅ Encontrou "${nomeRemedio}" na ${unidade.nome}`);
+        }
+
+        return temNome;
+      });
+
+      return temRemedio;
+    });
+
+    // Adaptar estrutura para compatibilidade com o renderItem
+    const unidadesAdaptadas = unidadesFiltradas.map((unidade) => {
+      const unidadeAdaptada = {
+        id: unidade.id,
+        nome: unidade.nome,
+        endereco: `Lat: ${unidade.latitude.toFixed(
+          4
+        )}, Lng: ${unidade.longitude.toFixed(4)}`,
+        distancia: unidade.distancia,
+        horario: unidade.horario,
+        medicamentos: unidade.disponibilidade || [],
+        latitude: unidade.latitude,
+        longitude: unidade.longitude,
+        disponibilidade: unidade.disponibilidade,
+        // Destacar o remédio pesquisado
+        medicamentoPesquisado: termoBusca,
+      };
+      console.log("✅ Unidade incluída:", unidadeAdaptada.nome);
+      return unidadeAdaptada;
+    });
+
+    console.log(
+      "🎯 Total de unidades com o remédio:",
+      unidadesAdaptadas.length
+    );
+    return unidadesAdaptadas;
+  })();
 
   const handleCardPress = (unidade) => {
-    navigation.navigate("Detalhes", {
-      unidade,
-      medicamentoPesquisado: busca.trim().length > 0 ? busca : null,
-    });
+    // Feedback haptic (se disponível)
+    if (Platform.OS === "ios") {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (error) {
+        console.log("Haptics não disponível:", error);
+      }
+    }
+
+    // Animação de escala para feedback visual
+    const scaleValue = new Animated.Value(1);
+    Animated.sequence([
+      Animated.timing(scaleValue, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleValue, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Navegar após um pequeno delay para permitir a animação
+    setTimeout(() => {
+      navigation.navigate("Detalhes", {
+        unidade,
+        medicamentoPesquisado: busca.trim().length > 0 ? busca : null,
+      });
+    }, 150);
   };
 
   // Função para validar e sanitizar o input de busca
@@ -436,8 +644,15 @@ export default function HomeScreen({ navigation }) {
   };
 
   return (
-    <View
-      style={[styles.container, { paddingTop: safeAreaConfig.safeAreaTop }]}
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          paddingTop: safeAreaConfig.safeAreaTop,
+          opacity: fadeAnim,
+          transform: [{ scale: scaleAnim }],
+        },
+      ]}
     >
       <StatusBar
         style="light"
@@ -465,6 +680,53 @@ export default function HomeScreen({ navigation }) {
         </View>
         <View style={{ width: 50 }} />
       </View>
+
+      {/* Indicadores de status da API */}
+      {(isLoadingUnidades || apiError || !isUsingApi) && (
+        <View style={styles.statusContainer}>
+          {isLoadingUnidades ? (
+            <View style={styles.statusItem}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.statusText}>Carregando unidades...</Text>
+            </View>
+          ) : (
+            <>
+              {apiError && (
+                <View style={styles.statusItem}>
+                  <Ionicons
+                    name="cloud-offline"
+                    size={16}
+                    color={COLORS.warning}
+                  />
+                  <Text style={styles.statusTextWarning}>
+                    {isUsingApi
+                      ? "API conectada"
+                      : "Modo offline - dados locais"}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={loadHealthUnitsData}
+                    style={styles.retryButton}
+                  >
+                    <Ionicons name="refresh" size={14} color={COLORS.primary} />
+                  </TouchableOpacity>
+                </View>
+              )}
+              {isUsingApi && (
+                <View style={styles.statusItem}>
+                  <Ionicons
+                    name="cloud-done"
+                    size={16}
+                    color={COLORS.success}
+                  />
+                  <Text style={styles.statusTextSuccess}>
+                    API conectada - dados atualizados
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+      )}
 
       {/* Container principal de busca */}
       <View style={styles.searchMainContainer}>
@@ -530,7 +792,38 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      {/* Cabeçalho com o remédio pesquisado */}
+      {busca.trim().length > 0 && (
+        <View style={styles.searchHeaderContainer}>
+          <Ionicons
+            name="search-outline"
+            size={20}
+            color={COLORS.primary}
+            style={styles.searchHeaderIcon}
+          />
+          <Text style={styles.searchHeaderText}>
+            Pesquisando por: "{busca}"
+          </Text>
+          {unidadesFiltradas.length > 0 && (
+            <Text style={styles.searchResultCount}>
+              {unidadesFiltradas.length} unidade
+              {unidadesFiltradas.length !== 1 ? "s" : ""} encontrada
+              {unidadesFiltradas.length !== 1 ? "s" : ""}
+            </Text>
+          )}
+        </View>
+      )}
+
       {/* Lista de unidades filtradas */}
+      {console.log(
+        "🎯 Renderizando FlatList com:",
+        unidadesFiltradas.length,
+        "itens"
+      )}
+      {console.log(
+        "📝 Lista completa:",
+        unidadesFiltradas.map((u) => u.nome)
+      )}
       <FlatList
         showsVerticalScrollIndicator={false}
         data={unidadesFiltradas}
@@ -617,57 +910,111 @@ export default function HomeScreen({ navigation }) {
             </View>
           )
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => handleCardPress(item)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.cardContent}>
-              <Text
-                style={styles.cardTitle}
-                numberOfLines={2}
-                ellipsizeMode="tail"
+        renderItem={({ item, index }) => {
+          console.log("🏥 Renderizando unidade:", item.nome);
+
+          // Animação de entrada para cada card (sem useEffect)
+          const cardFadeAnim = new Animated.Value(0);
+          const cardSlideAnim = new Animated.Value(30);
+
+          // Atraso baseado no índice para efeito escalonado
+          const delay = index * 100;
+
+          // Iniciar animação imediatamente
+          Animated.parallel([
+            Animated.timing(cardFadeAnim, {
+              toValue: 1,
+              duration: 400,
+              delay,
+              useNativeDriver: true,
+            }),
+            Animated.timing(cardSlideAnim, {
+              toValue: 0,
+              duration: 400,
+              delay,
+              useNativeDriver: true,
+            }),
+          ]).start();
+
+          return (
+            <Animated.View
+              style={{
+                opacity: cardFadeAnim,
+                transform: [{ translateY: cardSlideAnim }],
+              }}
+            >
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => handleCardPress(item)}
+                activeOpacity={0.8}
+                delayPressIn={0}
+                delayPressOut={100}
               >
-                {item.nome}
-              </Text>
+                <View style={styles.cardContent}>
+                  <Text
+                    style={styles.cardTitle}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
+                    {item.nome}
+                  </Text>
 
-              <View style={styles.cardInfoRow}>
-                <Ionicons
-                  name="location"
-                  size={ICON_SIZES.sm}
-                  color={COLORS.iconLocation}
-                />
-                <Text style={styles.cardDistance}>{item.distancia} km</Text>
-              </View>
+                  <View style={styles.cardInfoRow}>
+                    <Ionicons
+                      name="location"
+                      size={ICON_SIZES.sm}
+                      color={COLORS.iconLocation}
+                    />
+                    <Text style={styles.cardDistance}>{item.distancia} km</Text>
+                  </View>
 
-              <View style={styles.cardInfoRow}>
-                <Ionicons
-                  name="time"
-                  size={ICON_SIZES.sm}
-                  color={COLORS.iconTime}
-                />
-                <Text
-                  style={styles.cardHorario}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {typeof item.horario === "object"
-                    ? `${item.horario.semana.inicio} ${texts.to} ${item.horario.semana.fim}`
-                    : item.horario}
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
+                  <View style={styles.cardInfoRow}>
+                    <Ionicons
+                      name="time"
+                      size={ICON_SIZES.sm}
+                      color={COLORS.iconTime}
+                    />
+                    <Text
+                      style={styles.cardHorario}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {typeof item.horario === "object"
+                        ? `${item.horario.semana.inicio} ${texts.to} ${item.horario.semana.fim}`
+                        : item.horario}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        }}
       />
 
       {/* Rodapé com botão de notícias */}
-      <View style={styles.footerContainer}>
+      <Animated.View
+        style={[
+          styles.footerContainer,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.newsButton}
-          onPress={() => navigation.navigate("Noticias")}
-          activeOpacity={0.8}
+          onPress={() => {
+            // Feedback haptic
+            if (Platform.OS === "ios") {
+              try {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              } catch (error) {
+                console.log("Haptics não disponível:", error);
+              }
+            }
+            navigation.navigate("Noticias");
+          }}
+          activeOpacity={0.9}
         >
           <View style={styles.newsButtonContent}>
             <View style={styles.newsIconContainer}>
@@ -685,8 +1032,8 @@ export default function HomeScreen({ navigation }) {
             />
           </View>
         </TouchableOpacity>
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
@@ -712,7 +1059,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     ...SHADOWS.heavy,
     // Margem top negativa para sobrepor a safe area quando necessário
-    marginTop: Platform.OS === "android" ? -16 : 0,
+    marginTop: Platform.OS === "android" ? -39 : 0,
   },
   headerTitle: {
     ...TEXT_STYLES.headerTitle,
@@ -1005,5 +1352,77 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 20,
     marginBottom: SPACING.xs,
+  },
+
+  // Novos estilos para indicadores de status da API
+  statusContainer: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  statusItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: SPACING.xs,
+  },
+  statusText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.textSecondary,
+    marginLeft: SPACING.sm,
+  },
+  statusTextWarning: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.warning || "#FF9800",
+    marginLeft: SPACING.sm,
+  },
+  statusTextSuccess: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.success || "#4CAF50",
+    marginLeft: SPACING.sm,
+  },
+  retryButton: {
+    marginLeft: SPACING.sm,
+    padding: SPACING.xs,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryLight || COLORS.primary + "20",
+  },
+
+  // Estilos para o cabeçalho da pesquisa
+  searchHeaderContainer: {
+    width: "90%",
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 12,
+    padding: SPACING.md,
+    marginVertical: SPACING.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  searchHeaderIcon: {
+    marginBottom: SPACING.xs,
+  },
+  searchHeaderText: {
+    fontSize: FONT_SIZES.md,
+    fontFamily: FONTS.medium,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.xs,
+  },
+  searchResultCount: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.textSecondary,
   },
 });

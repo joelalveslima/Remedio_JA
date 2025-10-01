@@ -562,6 +562,10 @@ export class OCRUtils {
    * Obtém categoria baseada no padrão regex
    */
   static getMedicineCategoryByPattern(pattern) {
+    if (!pattern) {
+      return "medicamento";
+    }
+
     const patternCategories = {
       "/\\b\\w+pril\\b/gi": "anti-hipertensivo",
       "/\\b\\w+olol\\b/gi": "beta-bloqueador",

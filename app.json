@@ -4,9 +4,12 @@
     "slug": "remedio-ja",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "sdkVersion": "54.0.0",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#21796A"
     },
@@ -14,6 +17,7 @@
       "backgroundColor": "#21796A",
       "package": "com.anonymous.remedioja",
       "versionCode": 1,
+      "icon": "./assets/icon.png",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -27,16 +31,25 @@
         "translucent": true
       },
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#21796A"
       }
     },
     "ios": {
+      "icon": "./assets/icon.png",
       "statusBar": {
         "barStyle": "light-content"
       },
       "bundleIdentifier": "com.anonymous.remedioja"
     },
-    "web": {},
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "Remédio Já",
+      "shortName": "Remédio Já",
+      "description": "Encontre medicamentos em unidades de saúde próximas",
+      "themeColor": "#21796A",
+      "backgroundColor": "#21796A"
+    },
     "permissions": ["LOCATION", "CAMERA", "CAMERA_ROLL"],
     "extra": {
       "eas": {

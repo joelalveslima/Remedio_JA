@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     ...SHADOWS.heavy,
     // Margem top negativa para sobrepor a safe area quando necessário
-    marginTop: Platform.OS === "android" ? -16 : 0,
+    marginTop: Platform.OS === "android" ? -26 : 0,
   },
   headerBackButton: {
     flexDirection: "row",

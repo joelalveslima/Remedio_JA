@@ -53,8 +53,8 @@ export default function MapScreen({ navigation, route }) {
   }
 
   const [userLocation, setUserLocation] = useState(null);
-  const [locationStatus, setLocationStatus] = useState("verificando"); // verificando, ativa, inativa, negada
   const [locationWatcher, setLocationWatcher] = useState(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
   useEffect(() => {
     requestLocationPermission();
@@ -84,11 +84,8 @@ export default function MapScreen({ navigation, route }) {
           distanceInterval: 10, // Só disparar se mover mais de 10 metros
         },
         (location) => {
-          // Localização obtida com sucesso - GPS está ativo
+          // Localização obtida com sucesso
           setUserLocation(location.coords);
-          if (locationStatus !== "ativa") {
-            setLocationStatus("ativa");
-          }
         }
       );
 
@@ -97,56 +94,31 @@ export default function MapScreen({ navigation, route }) {
       // Tentar obter localização inicial
       getCurrentLocation();
     } catch (error) {
-      // Se falhou, verificar status manualmente uma vez
-      checkLocationStatus();
-    }
-  };
-
-  const checkLocationStatus = async () => {
-    try {
-      const isLocationEnabled = await Location.hasServicesEnabledAsync();
-      const { status } = await Location.getForegroundPermissionsAsync();
-
-      if (status !== "granted") {
-        setLocationStatus("negada");
-        return;
-      }
-
-      if (!isLocationEnabled) {
-        setLocationStatus("inativa");
-        return;
-      }
-
-      // Se chegou aqui, GPS está ativo e permissão concedida
-      setLocationStatus("ativa");
-      getCurrentLocation();
-    } catch (error) {
-      // Silenciosamente define como inativo
-      setLocationStatus("inativa");
+      console.warn("Erro ao configurar watcher de localização:", error);
     }
   };
 
   const requestLocationPermission = async () => {
     try {
-      setLocationStatus("verificando");
+      setIsLoadingLocation(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
 
       if (status === "granted") {
         setupLocationWatcher(); // Configurar watcher após obter permissão
-      } else {
-        setLocationStatus("negada");
       }
     } catch (error) {
-      setLocationStatus("inativa");
+      console.warn("Erro ao solicitar permissão de localização:", error);
+    } finally {
+      setIsLoadingLocation(false);
     }
   };
 
   const getCurrentLocation = async () => {
     try {
+      setIsLoadingLocation(true);
       const isLocationEnabled = await Location.hasServicesEnabledAsync();
 
       if (!isLocationEnabled) {
-        setLocationStatus("inativa");
         // Parar o watcher se GPS foi desativado
         if (locationWatcher) {
           locationWatcher.remove();
@@ -160,14 +132,15 @@ export default function MapScreen({ navigation, route }) {
         timeout: 10000,
       });
       setUserLocation(location.coords);
-      setLocationStatus("ativa");
     } catch (error) {
-      setLocationStatus("inativa");
+      console.warn("Erro ao obter localização:", error);
       // Parar o watcher se houver erro
       if (locationWatcher) {
         locationWatcher.remove();
         setLocationWatcher(null);
       }
+    } finally {
+      setIsLoadingLocation(false);
     }
   };
 
@@ -407,16 +380,11 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: SPACING.xxxl,
     marginBottom: SPACING.lg,
     ...SHADOWS.heavy,
-    // Margem top negativa para sobrepor a safe area quando necessário
-    marginTop: Platform.OS === "android" ? -16 : 0,
   },
   headerTitle: {
     ...TEXT_STYLES.headerTitle,
     flex: 1,
     textAlign: "center",
-    numberOfLines: 1,
-    adjustsFontSizeToFit: true,
-    minimumFontScale: 0.8,
   },
 
   // Mapa
@@ -576,11 +544,11 @@ const styles = StyleSheet.create({
   bottomButton: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: SPACING.sm, // Reduzido de md para sm
-    paddingHorizontal: SPACING.sm, // Reduzido de md para sm
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
     borderRadius: 10,
     backgroundColor: "rgba(255, 255, 255, 0.12)",
-    minWidth: 44, // Reduzido de 48 para 44
-    minHeight: 44, // Reduzido de 48 para 44
+    minWidth: 44,
+    minHeight: 44,
   },
 });

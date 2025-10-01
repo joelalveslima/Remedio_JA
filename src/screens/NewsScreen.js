@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import texts from "../localization";
 import {
   COLORS,
   SPACING,
@@ -226,7 +225,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   headerSpacer: {
-    width: 40, // Mesmo tamanho do botão back para manter centralização
+    width: 40, 
   },
 
   // Content
@@ -235,7 +234,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
 
-  // Stats Section
+ 
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
