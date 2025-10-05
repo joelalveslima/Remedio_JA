@@ -203,16 +203,3 @@ export const getUnidadesByRemedio = (remedioNome) => {
     )
   );
 };
-
-// Função utilitária para obter todos os remédios disponíveis
-export const getTodosRemediosDisponiveis = () => {
-  const remedios = new Set();
-  unidades.forEach((unidade) => {
-    unidade.disponibilidade.forEach((item) => {
-      if (item.disponivel) {
-        remedios.add(item.remedio);
-      }
-    });
-  });
-  return Array.from(remedios).sort();
-};

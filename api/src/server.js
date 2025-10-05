@@ -18,7 +18,6 @@ const healthRoutes = require("./routes/health");
 const unitsRoutes = require("./routes/units");
 const medicinesRoutes = require("./routes/medicines");
 const searchRoutes = require("./routes/search");
-const authRoutes = require("./routes/auth");
 
 // Importar middlewares
 const errorHandler = require("./middleware/errorHandler");
@@ -85,7 +84,6 @@ app.use("/api/health", healthRoutes);
 app.use("/api/units", unitsRoutes);
 app.use("/api/medicines", medicinesRoutes);
 app.use("/api/search", searchRoutes);
-app.use("/api/auth", authRoutes);
 
 // Rota raiz com informações da API
 app.get("/", (req, res) => {
@@ -99,7 +97,6 @@ app.get("/", (req, res) => {
       units: "/api/units",
       medicines: "/api/medicines",
       search: "/api/search",
-      auth: "/api/auth",
     },
     status: "online",
     timestamp: new Date().toISOString(),

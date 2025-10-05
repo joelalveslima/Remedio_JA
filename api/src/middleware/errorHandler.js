@@ -81,14 +81,6 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // JWT errors
-  if (err.name === "JsonWebTokenError") {
-    return res.status(401).json({
-      success: false,
-      message: "Token inválido",
-    });
-  }
-
   if (err.name === "TokenExpiredError") {
     return res.status(401).json({
       success: false,
