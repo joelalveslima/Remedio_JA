@@ -31,6 +31,7 @@ import { calculateDistance } from "../utils/locationUtils";
 import { OCRUtils } from "../utils/ocrUtils";
 import { OCRDataManager } from "../utils/ocrDataManager";
 import { getResponsiveConfig } from "../utils/safeAreaUtils";
+import { ImageSourceModal } from "../components/ImageSourceModal";
 // Novos imports para API
 import { healthUnitsService, apiHealthCheck } from "../services/api";
 import {
@@ -53,6 +54,9 @@ export default function HomeScreen({ navigation }) {
   const [isLoadingUnidades, setIsLoadingUnidades] = useState(true);
   const [apiError, setApiError] = useState(null);
   const [isUsingApi, setIsUsingApi] = useState(false);
+
+  // Estado para o modal moderno de seleção de imagem
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 
   // Estados para animações
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -378,84 +382,109 @@ export default function HomeScreen({ navigation }) {
   // Função para normalizar strings para busca segura - movida para dataAdapter
   // const normalizeSearchString = (str) => { ... } - removida, usando do dataAdapter
 
-  // Função para lidar com OCR
+  // Função para lidar com OCR - versão modernizada
   const handleOCRScan = async () => {
     if (isOCRProcessing) return;
+
+    // Mostrar modal moderno de seleção
+    setIsImageModalVisible(true);
+  };
+
+  // Função para processar imagem após seleção
+  const processOCRImage = async (image) => {
+    if (!image) return;
 
     setIsOCRProcessing(true);
 
     try {
-      const result = await OCRUtils.scanMedicineFromImage();
+      // Processar imagem com OCR
+      const result = await OCRUtils.processImageWithOCR(
+        image.uri,
+        image.base64
+      );
+
+      // Criar resultado estruturado similar ao antigo
+      const structuredResult = {
+        ...result,
+        medicineName: result.searchTerm || result.medicineName,
+        timestamp: new Date().toISOString(),
+      };
 
       // Salvar resultado no storage para análise posterior
-      await OCRDataManager.saveOCRResult(result);
+      await OCRDataManager.saveOCRResult(structuredResult);
 
-      if (result.success) {
+      if (structuredResult.success) {
         // Usar o termo estruturado para pesquisa
-        const searchTerm = result.searchTerm || result.medicineName;
+        const searchTerm =
+          structuredResult.searchTerm || structuredResult.medicineName;
         setBusca(searchTerm);
 
         // Log do JSON estruturado para debugging
-        if (result.json) {
+        if (structuredResult.json) {
           console.log(
             "📊 OCR JSON Result:",
-            JSON.stringify(result.json, null, 2)
+            JSON.stringify(structuredResult.json, null, 2)
           );
         }
 
         // Criar mensagem detalhada baseada nos dados estruturados
         let alertMessage = `Medicamento detectado: ${searchTerm}`;
-        alertMessage += `\nConfiança: ${Math.round(result.confidence * 100)}%`;
+        alertMessage += `\nConfiança: ${Math.round(
+          structuredResult.confidence * 100
+        )}%`;
 
-        if (result.medicine?.dosage?.full) {
-          alertMessage += `\nDosagem: ${result.medicine.dosage.full}`;
+        if (structuredResult.medicine?.dosage?.full) {
+          alertMessage += `\nDosagem: ${structuredResult.medicine.dosage.full}`;
         }
 
         if (
-          result.medicine?.category &&
-          result.medicine.category !== "medicamento"
+          structuredResult.medicine?.category &&
+          structuredResult.medicine.category !== "medicamento"
         ) {
-          alertMessage += `\nCategoria: ${result.medicine.category}`;
+          alertMessage += `\nCategoria: ${structuredResult.medicine.category}`;
         }
 
-        if (result.medicine?.manufacturer?.name) {
-          alertMessage += `\nFabricante: ${result.medicine.manufacturer.name}`;
+        if (structuredResult.medicine?.manufacturer?.name) {
+          alertMessage += `\nFabricante: ${structuredResult.medicine.manufacturer.name}`;
         }
 
-        if (result.isSimulation) {
+        if (structuredResult.isSimulation) {
           alertMessage += "\n\n⚠️ Modo simulação ativo";
         }
 
         Alert.alert(texts.ocrSuccess, alertMessage, [{ text: "OK" }]);
 
         // Log adicional das informações estruturadas
-        if (result.medicine) {
+        if (structuredResult.medicine) {
           console.log("💊 Medicamento detectado:", {
-            nome: result.medicine.name,
-            categoria: result.medicine.category,
-            dosagem: result.medicine.dosage,
-            fabricante: result.medicine.manufacturer,
-            confianca: result.medicine.confidence,
-            tipo_match: result.medicine.matchType,
+            nome: structuredResult.medicine.name,
+            categoria: structuredResult.medicine.category,
+            dosagem: structuredResult.medicine.dosage,
+            fabricante: structuredResult.medicine.manufacturer,
+            confianca: structuredResult.medicine.confidence,
+            tipo_match: structuredResult.medicine.matchType,
           });
         }
 
-        if (result.ocr) {
+        if (structuredResult.ocr) {
           console.log("🔍 Dados OCR:", {
-            texto_completo: result.ocr.fullText,
-            palavras_detectadas: result.ocr.wordCount,
-            linhas_detectadas: result.ocr.lines?.length || 0,
-            idioma: result.ocr.language,
+            texto_completo: structuredResult.ocr.fullText,
+            palavras_detectadas: structuredResult.ocr.wordCount,
+            linhas_detectadas: structuredResult.ocr.lines?.length || 0,
+            idioma: structuredResult.ocr.language,
           });
         }
       } else {
-        if (result.error !== "Captura cancelada") {
-          let errorMessage = result.error || texts.ocrNoTextFound;
+        if (structuredResult.error !== "Captura cancelada") {
+          let errorMessage = structuredResult.error || texts.ocrNoTextFound;
 
           // Mostrar sugestões se disponíveis
-          if (result.searchSuggestions && result.searchSuggestions.length > 0) {
+          if (
+            structuredResult.searchSuggestions &&
+            structuredResult.searchSuggestions.length > 0
+          ) {
             errorMessage += "\n\nSugestões encontradas:";
-            result.searchSuggestions.forEach((suggestion, index) => {
+            structuredResult.searchSuggestions.forEach((suggestion, index) => {
               errorMessage += `\n${index + 1}. ${suggestion.term}`;
             });
             errorMessage +=
@@ -465,10 +494,10 @@ export default function HomeScreen({ navigation }) {
           Alert.alert(texts.ocrError, errorMessage, [{ text: "OK" }]);
 
           // Log do JSON de erro para debugging
-          if (result.json) {
+          if (structuredResult.json) {
             console.log(
               "❌ Erro OCR JSON:",
-              JSON.stringify(result.json, null, 2)
+              JSON.stringify(structuredResult.json, null, 2)
             );
           }
         }
@@ -481,6 +510,39 @@ export default function HomeScreen({ navigation }) {
     } finally {
       setIsOCRProcessing(false);
     }
+  };
+
+  // Callbacks para o modal moderno
+  const handleCameraPress = async () => {
+    try {
+      const image = await OCRUtils.captureImage();
+      setIsImageModalVisible(false);
+      if (image) {
+        await processOCRImage(image);
+      }
+    } catch (error) {
+      setIsImageModalVisible(false);
+      console.error("Erro ao capturar imagem:", error);
+      Alert.alert("Erro", "Não foi possível acessar a câmera");
+    }
+  };
+
+  const handleGalleryPress = async () => {
+    try {
+      const image = await OCRUtils.pickImageFromGallery();
+      setIsImageModalVisible(false);
+      if (image) {
+        await processOCRImage(image);
+      }
+    } catch (error) {
+      setIsImageModalVisible(false);
+      console.error("Erro ao selecionar da galeria:", error);
+      Alert.alert("Erro", "Não foi possível acessar a galeria");
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsImageModalVisible(false);
   };
 
   // FILTRO POR REMÉDIO: Mostra apenas unidades que têm o remédio pesquisado
@@ -1033,6 +1095,16 @@ export default function HomeScreen({ navigation }) {
           </View>
         </TouchableOpacity>
       </Animated.View>
+
+      {/* Modal moderno para seleção de origem da imagem */}
+      <ImageSourceModal
+        visible={isImageModalVisible}
+        onClose={handleModalClose}
+        onCameraPress={handleCameraPress}
+        onGalleryPress={handleGalleryPress}
+        title="📸 Escanear Medicamento"
+        subtitle="Escolha como você quer capturar a imagem do medicamento:"
+      />
     </Animated.View>
   );
 }

@@ -13,8 +13,9 @@ const texts = {
   // Busca
   searchPlaceholder: "Digite o nome do remédio",
   searchMedicine: "Pesquise um remédio",
-  ocrScan: "Escanear receita",
-  ocrTooltip: "Use a câmera para capturar o nome do medicamento",
+  ocrScan: "Foto/Câmera",
+  ocrTooltip:
+    "Use a câmera ou escolha uma foto da galeria para capturar o nome do medicamento",
   ocrProcessing: "Processando imagem...",
   ocrError: "Erro ao processar imagem",
   ocrNoTextFound: "Nenhum texto encontrado na imagem",

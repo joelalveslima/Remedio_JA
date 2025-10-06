@@ -26,6 +26,20 @@ export class OCRUtils {
   }
 
   /**
+   * Solicita permissões da galeria/biblioteca de mídia
+   */
+  static async requestMediaLibraryPermissions() {
+    try {
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      return status === "granted";
+    } catch (error) {
+      console.error("Erro ao solicitar permissão da galeria:", error);
+      return false;
+    }
+  }
+
+  /**
    * Abre a câmera para capturar uma imagem
    */
   static async captureImage() {
@@ -60,6 +74,75 @@ export class OCRUtils {
       console.error("❌ Erro ao capturar imagem:", error);
       return null;
     }
+  }
+
+  /**
+   * Abre a galeria para selecionar uma imagem
+   */
+  static async pickImageFromGallery() {
+    try {
+      // Verificar permissões primeiro
+      const hasPermission = await this.requestMediaLibraryPermissions();
+
+      if (!hasPermission) {
+        Alert.alert(
+          "Permissão Necessária",
+          "É necessário permitir o acesso à galeria para usar esta funcionalidade."
+        );
+        return null;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false, // Removido para não precisar cortar
+        quality: 0.9, // Qualidade maior para melhor OCR
+        base64: true, // Necessário para enviar para Google Vision API
+        allowsMultipleSelection: false, // Apenas uma imagem por vez
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        return result.assets[0];
+      }
+
+      return null;
+    } catch (error) {
+      console.error("❌ Erro ao selecionar imagem da galeria:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Mostra opções para o usuário escolher entre câmera ou galeria
+   */
+  static async showImageSourceOptions() {
+    return new Promise((resolve) => {
+      Alert.alert(
+        "Selecionar Imagem",
+        "Escolha a origem da imagem para análise:",
+        [
+          {
+            text: "📷 Câmera",
+            onPress: async () => {
+              const image = await this.captureImage();
+              resolve(image);
+            },
+          },
+          {
+            text: "🖼️ Galeria",
+            onPress: async () => {
+              const image = await this.pickImageFromGallery();
+              resolve(image);
+            },
+          },
+          {
+            text: "Cancelar",
+            style: "cancel",
+            onPress: () => resolve(null),
+          },
+        ],
+        { cancelable: true, onDismiss: () => resolve(null) }
+      );
+    });
   }
 
   /**
@@ -611,10 +694,17 @@ export class OCRUtils {
   /**
    * Função principal para capturar e processar imagem
    */
-  static async scanMedicineFromImage() {
+  static async scanMedicineFromImage(useImagePicker = true) {
     try {
-      // Captura a imagem
-      const image = await this.captureImage();
+      let image;
+
+      if (useImagePicker) {
+        // Mostra opções para o usuário escolher entre câmera ou galeria
+        image = await this.showImageSourceOptions();
+      } else {
+        // Comportamento antigo - apenas câmera (mantido para compatibilidade)
+        image = await this.captureImage();
+      }
 
       if (!image) {
         return {
