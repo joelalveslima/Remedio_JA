@@ -178,7 +178,9 @@ export class OCRUtils {
   static async processImageWithOCR(imageUri, base64Data) {
     try {
       // Validar configuração
-      if (!validateConfig()) {
+      const configValidation = validateConfig();
+      if (!configValidation.isValid) {
+        console.error("Erro de configuração:", configValidation.errors);
         return {
           success: false,
           error: "Não foi possível encontrar o medicamento na imagem",
@@ -193,18 +195,36 @@ export class OCRUtils {
         throw new Error("Não foi possível processar a imagem");
       }
 
+      // Validar formato base64
+      if (typeof base64Image !== "string" || base64Image.length === 0) {
+        throw new Error("Formato de imagem inválido");
+      }
+
+      // Remover prefixo data:image se presente
+      const cleanBase64 = base64Image.replace(
+        /^data:image\/[a-z]+;base64,/,
+        ""
+      );
+
       // Preparar payload para Google Cloud Vision API
       const requestBody = {
         requests: [
           {
             image: {
-              content: base64Image,
+              content: cleanBase64,
             },
             features: GOOGLE_CLOUD_CONFIG.FEATURES,
             imageContext: GOOGLE_CLOUD_CONFIG.IMAGE_CONTEXT,
           },
         ],
       };
+
+      console.log("🔍 Enviando para Google Vision API:", {
+        url: GOOGLE_CLOUD_CONFIG.VISION_API_URL,
+        hasApiKey: !!GOOGLE_CLOUD_CONFIG.API_KEY,
+        imageSize: cleanBase64.length,
+        features: GOOGLE_CLOUD_CONFIG.FEATURES,
+      });
 
       // Fazer requisição para Google Cloud Vision API
       const response = await fetch(
@@ -215,14 +235,21 @@ export class OCRUtils {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(requestBody),
-          timeout: APP_CONFIG.TIMEOUT_MS,
         }
       );
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error("Erro detalhado da API:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText,
+          url: GOOGLE_CLOUD_CONFIG.VISION_API_URL,
+          apiKey: GOOGLE_CLOUD_CONFIG.API_KEY.substring(0, 10) + "...",
+        });
+
         throw new Error(
-          `Erro da API: ${response.status} - ${response.statusText}`
+          `Erro da API: ${response.status} - ${response.statusText}\nDetalhes: ${errorText}`
         );
       }
 
@@ -233,17 +260,54 @@ export class OCRUtils {
     } catch (error) {
       console.error("Erro no processamento OCR:", error.message);
 
-      // Em caso de erro da API, retornar erro
+      // Verificar se é erro de billing (403)
+      if (
+        error.message.includes("403") ||
+        error.message.includes("BILLING_DISABLED")
+      ) {
+        console.log("⚠️ Erro de billing detectado - API não disponível");
+        Alert.alert(
+          "🔧 Configuração Necessária",
+          "A API do Google Cloud Vision precisa de billing ativo.\n\n" +
+            "Para ativar:\n" +
+            "1. Acesse console.cloud.google.com/billing\n" +
+            "2. Configure uma conta de faturamento\n" +
+            "3. Vincule ao seu projeto\n\n" +
+            "Por enquanto, usando modo simulado.",
+          [{ text: "OK" }]
+        );
+        return this.processWithFallbackMode(imageUri, base64Data);
+      }
+
+      // Verificar outros erros de API
+      if (
+        error.message.includes("API_KEY_INVALID") ||
+        error.message.includes("API key expired")
+      ) {
+        console.log("⚠️ API Key inválida ou expirada");
+        Alert.alert(
+          "🔑 API Key Expirada",
+          "A chave da API Google Cloud Vision expirou ou é inválida.\n\n" +
+            "Para resolver:\n" +
+            "1. Acesse: console.cloud.google.com\n" +
+            "2. Vá em 'APIs & Services' > 'Credentials'\n" +
+            "3. Gere uma nova API Key\n" +
+            "4. Atualize em apiKeys.js\n\n" +
+            "Por enquanto, usando modo simulado.",
+          [{ text: "OK" }]
+        );
+        return this.processWithFallbackMode(imageUri, base64Data);
+      }
+
+      // Em caso de erro da API, usar fallback
       if (
         error.message.includes("Erro da API") ||
-        error.message.includes("Rede")
+        error.message.includes("Rede") ||
+        error.message.includes("403") ||
+        error.message.includes("400")
       ) {
-        return {
-          success: false,
-          error: "Não foi possível encontrar o medicamento na imagem",
-          timestamp: new Date().toISOString(),
-          source: "erro_api",
-        };
+        console.log("⚠️ Erro na API, usando modo fallback");
+        return this.processWithFallbackMode(imageUri, base64Data);
       }
 
       return {
@@ -254,6 +318,80 @@ export class OCRUtils {
         source: "erro_processamento",
       };
     }
+  }
+
+  /**
+   * Processa imagem em modo fallback quando a API não está disponível
+   */
+  static async processWithFallbackMode(imageUri, base64Data) {
+    console.log("🔄 Executando modo fallback - OCR simulado");
+
+    return new Promise((resolve) => {
+      Alert.alert(
+        "💊 Busca Manual de Medicamento",
+        "A análise automática não está disponível no momento.\n\nPor favor, selecione o medicamento que você está procurando:",
+        [
+          {
+            text: "Cancelar",
+            style: "cancel",
+            onPress: () =>
+              resolve({
+                success: false,
+                error: "Busca cancelada pelo usuário",
+                timestamp: new Date().toISOString(),
+                source: "fallback_cancelado",
+              }),
+          },
+          {
+            text: "Ver lista",
+            onPress: () => this.showManualInputDialog(resolve),
+          },
+        ]
+      );
+    });
+  }
+
+  /**
+   * Mostra diálogo para entrada manual do medicamento
+   */
+  static showManualInputDialog(resolve) {
+    const commonMedicines = APP_CONFIG.OCR.COMMON_MEDICINES;
+
+    const buttons = commonMedicines.slice(0, 8).map((medicine, index) => ({
+      text: `${index + 1}. ${medicine}`,
+      onPress: () =>
+        resolve({
+          success: true,
+          medicine: {
+            name: medicine,
+            confidence: 0.9,
+            matchType: "fallback_manual",
+            category: this.getMedicineCategory(medicine),
+          },
+          searchTerm: medicine,
+          timestamp: new Date().toISOString(),
+          source: "fallback_lista_comum",
+          fallbackMode: true,
+        }),
+    }));
+
+    buttons.push({
+      text: "❌ Cancelar",
+      style: "cancel",
+      onPress: () =>
+        resolve({
+          success: false,
+          error: "Nenhum medicamento selecionado",
+          timestamp: new Date().toISOString(),
+          source: "fallback_cancelado",
+        }),
+    });
+
+    Alert.alert(
+      "🏥 Medicamentos Mais Comuns",
+      "Selecione o medicamento que você está procurando:",
+      buttons
+    );
   }
 
   /**
@@ -441,16 +579,18 @@ export class OCRUtils {
   static findMedicineInText(text) {
     if (!text) return null;
 
+    console.log("🔍 Analisando texto OCR:", text);
     const normalizedText = text.toLowerCase();
-    const knownMedicines = APP_CONFIG.OCR_CONFIG.KNOWN_MEDICINES;
+    const knownMedicines = APP_CONFIG.OCR.COMMON_MEDICINES;
 
     // Array para armazenar todos os matches encontrados
     const matches = [];
 
-    // 1. Procurar medicamentos conhecidos (maior prioridade)
+    // 1. Procurar medicamentos conhecidos PRIMEIRO (maior prioridade)
     for (const medicine of knownMedicines) {
       const lowerMedicine = medicine.toLowerCase();
       if (normalizedText.includes(lowerMedicine)) {
+        console.log(`✅ Encontrado medicamento conhecido: ${medicine}`);
         matches.push({
           name: this.capitalizeMedicine(medicine),
           confidence: 0.95,
@@ -463,35 +603,93 @@ export class OCRUtils {
       }
     }
 
-    // 2. Procurar padrões de medicamentos (prioridade média)
-    const patterns = APP_CONFIG.OCR_CONFIG.MEDICINE_PATTERNS;
-    for (const pattern of patterns) {
-      const matches_pattern = text.match(pattern);
-      if (matches_pattern && matches_pattern.length > 0) {
-        for (const match of matches_pattern) {
-          // Evitar duplicatas
-          if (
-            !matches.find((m) => m.name.toLowerCase() === match.toLowerCase())
-          ) {
-            matches.push({
-              name: this.capitalizeMedicine(match),
-              confidence: 0.8,
-              matchType: "padrao_correspondencia",
-              originalText: match,
-              dosage: this.extractDosage(text, match),
-              manufacturer: this.extractManufacturer(text),
-              category: this.getMedicineCategoryByPattern(pattern),
-            });
+    // 2. Procurar nomes específicos de medicamentos comuns não listados
+    const additionalMedicines = [
+      "cetoprofeno",
+      "azitromicina",
+      "clonazepam",
+      "fluoxetina",
+      "amoxicilina",
+      "cefalexina",
+      "diclofenaco",
+      "nimesulida",
+      "ciprofloxacino",
+      "doxiciclina",
+      "prednisona",
+      "hidrocortisona",
+    ];
+
+    for (const medicine of additionalMedicines) {
+      const lowerMedicine = medicine.toLowerCase();
+      if (normalizedText.includes(lowerMedicine)) {
+        console.log(`✅ Encontrado medicamento adicional: ${medicine}`);
+        // Evitar duplicatas
+        if (!matches.find((m) => m.name.toLowerCase() === lowerMedicine)) {
+          matches.push({
+            name: this.capitalizeMedicine(medicine),
+            confidence: 0.9,
+            matchType: "adicional_conhecido",
+            originalText: medicine,
+            dosage: this.extractDosage(text, medicine),
+            manufacturer: this.extractManufacturer(text),
+            category: this.getMedicineCategory(medicine),
+          });
+        }
+      }
+    }
+
+    // 3. Se já encontrou um medicamento conhecido, retornar o melhor
+    if (matches.length > 0) {
+      const bestMatch = matches.reduce((best, current) =>
+        current.confidence > best.confidence ? current : best
+      );
+      console.log(
+        "💊 Medicamento encontrado na lista conhecida:",
+        bestMatch.name
+      );
+      return bestMatch;
+    }
+
+    // 4. Só usar padrões se não encontrou nenhum medicamento conhecido
+    if (matches.length === 0) {
+      console.log(
+        "🔍 Nenhum medicamento conhecido encontrado, tentando padrões..."
+      );
+      const patterns = APP_CONFIG.OCR.MEDICINE_PATTERNS;
+      for (const pattern of patterns) {
+        const matches_pattern = text.match(pattern);
+        if (matches_pattern && matches_pattern.length > 0) {
+          for (const match of matches_pattern) {
+            // Evitar duplicatas e unidades
+            if (
+              !matches.find(
+                (m) => m.name.toLowerCase() === match.toLowerCase()
+              ) &&
+              !/^\d+\s?(mg|ml)$/i.test(match) // Não capturar apenas dosagens
+            ) {
+              console.log(`🔍 Encontrado por padrão: ${match}`);
+              matches.push({
+                name: this.capitalizeMedicine(match),
+                confidence: 0.75,
+                matchType: "padrao_correspondencia",
+                originalText: match,
+                dosage: this.extractDosage(text, match),
+                manufacturer: this.extractManufacturer(text),
+                category: this.getMedicineCategoryByPattern(pattern),
+              });
+            }
           }
         }
       }
     }
 
-    // 3. Procurar palavras que parecem medicamentos (menor prioridade)
+    // 5. Procurar palavras que parecem medicamentos (menor prioridade)
     if (matches.length === 0) {
-      const words = text.split(/\s+/).filter((word) => word.length > 3);
+      console.log("🔍 Tentando identificar por heurística...");
+      const words = text.split(/\s+/).filter((word) => word.length > 4);
       for (const word of words) {
         if (this.looksLikeMedicine(word)) {
+          console.log(`🔍 Palavra que parece medicamento: ${word}`);
           matches.push({
             name: this.capitalizeMedicine(word),
             confidence: 0.65,
@@ -675,12 +873,48 @@ export class OCRUtils {
   static looksLikeMedicine(word) {
     const cleaned = word.replace(/[^a-zA-Z]/g, "");
 
+    // Rejeitar palavras comuns que não são medicamentos
+    const commonWords = [
+      "the",
+      "and",
+      "for",
+      "with",
+      "this",
+      "that",
+      "uso",
+      "oral",
+      "adulto",
+      "medicamento",
+      "generico",
+      "venda",
+      "sob",
+      "prescricao",
+      "medica",
+      "contem",
+      "comprimidos",
+      "liberacao",
+      "prolongada",
+      "laboratorio",
+      "ems",
+      "ms",
+      "anvisa",
+      "registro",
+    ];
+
+    // Rejeitar unidades e números
+    if (/^\d+$/.test(cleaned) || /^(mg|ml|comp|caps|tab)$/i.test(cleaned)) {
+      return false;
+    }
+
     // Critérios para parecer um medicamento
     return (
-      cleaned.length >= 4 &&
+      cleaned.length >= 5 && // Mínimo 5 letras para medicamentos
       cleaned.length <= 20 &&
       /^[A-Za-z]+$/.test(cleaned) &&
-      !/^(the|and|for|with|this|that)$/i.test(cleaned)
+      !commonWords.includes(cleaned.toLowerCase()) &&
+      // Verificar se tem padrões típicos de medicamentos
+      (/(?:ol|ina|ano|ato|eno|feno|lol|pril|sartan)$/i.test(cleaned) ||
+        /^(?:ceto|amoxi|dipir|ibupro|lorata|omepr|metfor|losar)/i.test(cleaned))
     );
   }
 

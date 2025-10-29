@@ -25,11 +25,6 @@
         "WRITE_EXTERNAL_STORAGE",
         "READ_EXTERNAL_STORAGE"
       ],
-      "statusBar": {
-        "backgroundColor": "#21796A",
-        "barStyle": "light-content",
-        "translucent": true
-      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#21796A"
@@ -37,9 +32,6 @@
     },
     "ios": {
       "icon": "./assets/icon.png",
-      "statusBar": {
-        "barStyle": "light-content"
-      },
       "bundleIdentifier": "com.anonymous.remedioja"
     },
     "web": {
@@ -49,13 +41,6 @@
       "description": "Encontre medicamentos em unidades de saúde próximas",
       "themeColor": "#21796A",
       "backgroundColor": "#21796A"
-    },
-    "permissions": ["LOCATION", "CAMERA", "CAMERA_ROLL"],
-    "extra": {
-      "eas": {
-        "projectId": "fe8063da-8c81-4167-95bd-d065836714d7"
-      }
-    },
-    "owner": "joelalveslima"
+    }
   }
 }

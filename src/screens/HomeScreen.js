@@ -11,6 +11,7 @@ import {
   Platform,
   Animated,
   Dimensions,
+  Linking,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -172,20 +173,34 @@ export default function HomeScreen({ navigation }) {
   };
 
   /**
-   * Recarrega dados quando a localização do usuário mudar
+   * Recarrega dados quando a localização do usuário mudar ou quando dados são carregados
    */
   useEffect(() => {
     if (userLocation && unidadesData.length > 0) {
-      // Recalcular distâncias com a nova localização
-      const updatedData = adaptHealthUnitsFromApi(
-        unidadesData
-          .filter((unit) => unit && (unit._apiData || unit.id)) // Filtrar itens válidos
-          .map((unit) => unit._apiData || unit),
+      console.log(
+        "🔄 Recalculando distâncias com localização atual:",
         userLocation
       );
+      // Usar nossa nova função para calcular distâncias em tempo real
+      const updatedData = calculateUnitsDistances(unidadesData, userLocation);
       setUnidadesData(updatedData);
     }
   }, [userLocation]);
+
+  /**
+   * Calcula distâncias quando dados das unidades são carregados pela primeira vez
+   */
+  useEffect(() => {
+    if (
+      unidadesData.length > 0 &&
+      userLocation &&
+      !unidadesData[0]?.distanciaCalculada
+    ) {
+      console.log("📊 Dados carregados, calculando distâncias iniciais...");
+      const updatedData = calculateUnitsDistances(unidadesData, userLocation);
+      setUnidadesData(updatedData);
+    }
+  }, [unidadesData.length]);
 
   const initializeLocation = async () => {
     try {
@@ -365,19 +380,62 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Calcula distâncias reais se a localização estiver disponível
-  // Agora usa dados da API (unidadesData) em vez de dados locais
-  const unidadesComDistancia =
-    unidadesData.length > 0 ? unidadesData : unidades;
+  // Função para calcular distâncias das unidades baseada na localização do usuário
+  const calculateUnitsDistances = (units, userLocation) => {
+    if (!userLocation || !userLocation.latitude || !userLocation.longitude) {
+      console.log(
+        "📍 Localização do usuário não disponível, usando distâncias padrão"
+      );
+      return units;
+    }
 
-  console.log(
-    "🔄 unidadesComDistancia atualizado:",
-    unidadesComDistancia.length
-  );
-  console.log(
-    "📋 Fonte dos dados:",
-    unidadesData.length > 0 ? "API/Processados" : "Locais diretos"
-  );
+    console.log(
+      "📍 Calculando distâncias baseadas na localização do usuário:",
+      {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+      }
+    );
+
+    return units
+      .map((unit) => {
+        const unitLat = unit.latitude;
+        const unitLon = unit.longitude;
+
+        if (!unitLat || !unitLon) {
+          console.warn(
+            `⚠️ Unidade "${unit.nome}" sem coordenadas, mantendo distância padrão`
+          );
+          return unit;
+        }
+
+        const calculatedDistance = calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          unitLat,
+          unitLon
+        );
+
+        const finalDistance =
+          calculatedDistance !== null
+            ? parseFloat(calculatedDistance.toFixed(1))
+            : unit.distancia; // fallback para distância original
+
+        console.log(
+          `📏 ${unit.nome}: ${finalDistance}km (calculado: ${
+            calculatedDistance !== null
+          })`
+        );
+
+        return {
+          ...unit,
+          distancia: finalDistance,
+          distanciaCalculada: calculatedDistance !== null,
+          distanciaOriginal: unit.distancia,
+        };
+      })
+      .sort((a, b) => a.distancia - b.distancia); // Ordenar por distância
+  };
 
   // Função para normalizar strings para busca segura - movida para dataAdapter
   // const normalizeSearchString = (str) => { ... } - removida, usando do dataAdapter
@@ -427,34 +485,7 @@ export default function HomeScreen({ navigation }) {
           );
         }
 
-        // Criar mensagem detalhada baseada nos dados estruturados
-        let alertMessage = `Medicamento detectado: ${searchTerm}`;
-        alertMessage += `\nConfiança: ${Math.round(
-          structuredResult.confidence * 100
-        )}%`;
-
-        if (structuredResult.medicine?.dosage?.full) {
-          alertMessage += `\nDosagem: ${structuredResult.medicine.dosage.full}`;
-        }
-
-        if (
-          structuredResult.medicine?.category &&
-          structuredResult.medicine.category !== "medicamento"
-        ) {
-          alertMessage += `\nCategoria: ${structuredResult.medicine.category}`;
-        }
-
-        if (structuredResult.medicine?.manufacturer?.name) {
-          alertMessage += `\nFabricante: ${structuredResult.medicine.manufacturer.name}`;
-        }
-
-        if (structuredResult.isSimulation) {
-          alertMessage += "\n\n⚠️ Modo simulação ativo";
-        }
-
-        Alert.alert(texts.ocrSuccess, alertMessage, [{ text: "OK" }]);
-
-        // Log adicional das informações estruturadas
+        // Log adicional das informações estruturadas (sem popup)
         if (structuredResult.medicine) {
           console.log("💊 Medicamento detectado:", {
             nome: structuredResult.medicine.name,
@@ -549,7 +580,13 @@ export default function HomeScreen({ navigation }) {
   const unidadesFiltradas = (() => {
     console.log("🔍 FILTRO: Iniciando busca por remédio");
     console.log("📝 Busca atual:", busca);
-    console.log("🏥 Total de unidades disponíveis:", unidades.length);
+    console.log(
+      "🏥 Total de unidades disponíveis:",
+      unidadesData.length || unidades.length
+    );
+
+    // Usar unidadesData (com distâncias calculadas) ou fallback para unidades
+    const dadosParaFiltrar = unidadesData.length > 0 ? unidadesData : unidades;
 
     // Verificação de segurança: garantir que busca é uma string válida
     if (!busca || typeof busca !== "string") {
@@ -557,17 +594,38 @@ export default function HomeScreen({ navigation }) {
       return [];
     }
 
-    // Se não há busca, retornar array vazio
+    // Se não há busca, retornar todas as unidades ordenadas por distância
     if (busca.trim().length === 0) {
-      console.log("❌ Busca vazia, retornando array vazio");
-      return [];
+      console.log(
+        "📋 Sem busca, mostrando todas as unidades ordenadas por distância"
+      );
+      const todasUnidades = dadosParaFiltrar
+        .map((unidade) => ({
+          id: unidade.id,
+          nome: unidade.nome,
+          endereco: `Lat: ${unidade.latitude.toFixed(
+            4
+          )}, Lng: ${unidade.longitude.toFixed(4)}`,
+          distancia: unidade.distancia,
+          distanciaCalculada: unidade.distanciaCalculada || false,
+          distanciaOriginal: unidade.distanciaOriginal,
+          horario: unidade.horario,
+          medicamentos: unidade.disponibilidade || [],
+          latitude: unidade.latitude,
+          longitude: unidade.longitude,
+          disponibilidade: unidade.disponibilidade,
+        }))
+        .sort((a, b) => a.distancia - b.distancia); // Ordenar por distância
+
+      console.log("🎯 Mostrando todas as unidades:", todasUnidades.length);
+      return todasUnidades;
     }
 
     // Filtrar unidades que têm o remédio pesquisado
     const termoBusca = busca.toLowerCase().trim();
     console.log("🔍 Procurando por:", termoBusca);
 
-    const unidadesFiltradas = unidades.filter((unidade) => {
+    const unidadesFiltradas = dadosParaFiltrar.filter((unidade) => {
       // Verificação de segurança: garantir que a unidade é válida
       if (!unidade || !unidade.nome) {
         console.warn("⚠️ Unidade inválida encontrada:", unidade);
@@ -611,25 +669,36 @@ export default function HomeScreen({ navigation }) {
     });
 
     // Adaptar estrutura para compatibilidade com o renderItem
-    const unidadesAdaptadas = unidadesFiltradas.map((unidade) => {
-      const unidadeAdaptada = {
-        id: unidade.id,
-        nome: unidade.nome,
-        endereco: `Lat: ${unidade.latitude.toFixed(
-          4
-        )}, Lng: ${unidade.longitude.toFixed(4)}`,
-        distancia: unidade.distancia,
-        horario: unidade.horario,
-        medicamentos: unidade.disponibilidade || [],
-        latitude: unidade.latitude,
-        longitude: unidade.longitude,
-        disponibilidade: unidade.disponibilidade,
-        // Destacar o remédio pesquisado
-        medicamentoPesquisado: termoBusca,
-      };
-      console.log("✅ Unidade incluída:", unidadeAdaptada.nome);
-      return unidadeAdaptada;
-    });
+    const unidadesAdaptadas = unidadesFiltradas
+      .map((unidade) => {
+        const unidadeAdaptada = {
+          id: unidade.id,
+          nome: unidade.nome,
+          endereco: `Lat: ${unidade.latitude.toFixed(
+            4
+          )}, Lng: ${unidade.longitude.toFixed(4)}`,
+          distancia: unidade.distancia,
+          distanciaCalculada: unidade.distanciaCalculada || false, // Preservar flag de cálculo
+          distanciaOriginal: unidade.distanciaOriginal, // Preservar distância original
+          horario: unidade.horario,
+          medicamentos: unidade.disponibilidade || [],
+          latitude: unidade.latitude,
+          longitude: unidade.longitude,
+          disponibilidade: unidade.disponibilidade,
+          // Destacar o remédio pesquisado
+          medicamentoPesquisado: termoBusca,
+        };
+        console.log(
+          "✅ Unidade incluída:",
+          unidadeAdaptada.nome,
+          "Distância:",
+          unidadeAdaptada.distancia + "km",
+          "GPS:",
+          unidadeAdaptada.distanciaCalculada
+        );
+        return unidadeAdaptada;
+      })
+      .sort((a, b) => a.distancia - b.distancia); // Ordenar por distância
 
     console.log(
       "🎯 Total de unidades com o remédio:",
@@ -702,6 +771,100 @@ export default function HomeScreen({ navigation }) {
     // Só atualiza se passar na validação regex e não contiver padrões perigosos
     if (allowedCharsRegex.test(sanitizedText) && !hasDangerousPattern) {
       setBusca(sanitizedText);
+    }
+  };
+
+  // Função para navegar para a localização da unidade
+  const handleNavigateToLocation = (unidade) => {
+    console.log("🗺️ Tentando navegar para:", unidade.nome);
+    console.log("📍 Dados da unidade:", JSON.stringify(unidade, null, 2));
+
+    // Tentar várias estruturas de dados possíveis
+    const { latitude, longitude } =
+      unidade.location ||
+      unidade.localizacao || {
+        latitude: unidade.latitude,
+        longitude: unidade.longitude,
+      } ||
+      {};
+
+    console.log("📍 Coordenadas extraídas:", { latitude, longitude });
+
+    if (!latitude || !longitude) {
+      console.error("❌ Coordenadas não encontradas para:", unidade.nome);
+      Alert.alert(
+        "Localização não disponível",
+        `Não foi possível obter as coordenadas desta unidade de saúde.\n\nUnidade: ${
+          unidade.nome
+        }\nLatitude: ${latitude || "não encontrada"}\nLongitude: ${
+          longitude || "não encontrada"
+        }`
+      );
+      return;
+    }
+
+    // Feedback haptic se disponível
+    if (Platform.OS === "ios") {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (error) {
+        console.log("Haptics não disponível:", error);
+      }
+    }
+
+    const label = encodeURIComponent(unidade.nome);
+    const coordinates = `${latitude},${longitude}`;
+
+    console.log("🏷️ Label:", label);
+    console.log("📐 Coordinates:", coordinates);
+
+    // URLs para diferentes plataformas de mapas
+    const urls = {
+      ios: `maps://app?daddr=${coordinates}&dirflg=d`, // Apple Maps
+      android: `google.navigation:q=${coordinates}`, // Google Maps Navigation
+      androidMaps: `geo:${coordinates}?q=${coordinates}(${label})`, // Android Maps genérico
+      web: `https://www.google.com/maps/dir/?api=1&destination=${coordinates}`, // Google Maps Web
+    };
+
+    console.log("🌐 URLs geradas:", urls);
+
+    // Função para tentar abrir o mapa
+    const openMap = async (url, fallbackUrl) => {
+      try {
+        console.log("🚀 Tentando abrir URL:", url);
+        const supported = await Linking.canOpenURL(url);
+        console.log("✅ URL suportada:", supported);
+
+        if (supported) {
+          await Linking.openURL(url);
+          console.log("✅ Mapa aberto com sucesso");
+        } else if (fallbackUrl) {
+          console.log("🔄 Tentando URL de fallback:", fallbackUrl);
+          await Linking.openURL(fallbackUrl);
+          console.log("✅ Mapa aberto com fallback");
+        } else {
+          throw new Error("Nenhum app de mapa disponível");
+        }
+      } catch (error) {
+        console.error("❌ Erro ao abrir mapa:", error);
+        Alert.alert(
+          "Erro ao Abrir Mapa",
+          `Não foi possível abrir o aplicativo de mapas.\n\nDetalhes:\n- URL tentada: ${url}\n- Erro: ${error.message}\n\nVerifique se você tem um app de mapas instalado.`
+        );
+      }
+    };
+
+    // Escolher URL baseada na plataforma
+    console.log("📱 Plataforma detectada:", Platform.OS);
+    if (Platform.OS === "ios") {
+      openMap(urls.ios, urls.web);
+    } else if (Platform.OS === "android") {
+      // Tentar Google Maps Navigation primeiro, depois genérico, depois web
+      openMap(urls.android, urls.androidMaps).catch(() => {
+        openMap(urls.androidMaps, urls.web);
+      });
+    } else {
+      openMap(urls.web);
     }
   };
 
@@ -1013,39 +1176,69 @@ export default function HomeScreen({ navigation }) {
                 delayPressOut={100}
               >
                 <View style={styles.cardContent}>
-                  <Text
-                    style={styles.cardTitle}
-                    numberOfLines={2}
-                    ellipsizeMode="tail"
-                  >
-                    {item.nome}
-                  </Text>
-
-                  <View style={styles.cardInfoRow}>
-                    <Ionicons
-                      name="location"
-                      size={ICON_SIZES.sm}
-                      color={COLORS.iconLocation}
-                    />
-                    <Text style={styles.cardDistance}>{item.distancia} km</Text>
-                  </View>
-
-                  <View style={styles.cardInfoRow}>
-                    <Ionicons
-                      name="time"
-                      size={ICON_SIZES.sm}
-                      color={COLORS.iconTime}
-                    />
+                  <View style={styles.cardMainContent}>
                     <Text
-                      style={styles.cardHorario}
-                      numberOfLines={1}
+                      style={styles.cardTitle}
+                      numberOfLines={2}
                       ellipsizeMode="tail"
                     >
-                      {typeof item.horario === "object"
-                        ? `${item.horario.semana.inicio} ${texts.to} ${item.horario.semana.fim}`
-                        : item.horario}
+                      {item.nome}
                     </Text>
+
+                    <View style={styles.cardInfoRow}>
+                      <Ionicons
+                        name="location"
+                        size={ICON_SIZES.sm}
+                        color={COLORS.iconLocation}
+                      />
+                      <Text style={styles.cardDistance}>
+                        {item.distancia} km
+                      </Text>
+                      {item.distanciaCalculada && (
+                        <View style={styles.gpsIndicator}>
+                          <Ionicons
+                            name="radio-button-on"
+                            size={8}
+                            color={COLORS.success}
+                          />
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.cardInfoRow}>
+                      <Ionicons
+                        name="time"
+                        size={ICON_SIZES.sm}
+                        color={COLORS.iconTime}
+                      />
+                      <Text
+                        style={styles.cardHorario}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {typeof item.horario === "object"
+                          ? `${item.horario.semana.inicio} ${texts.to} ${item.horario.semana.fim}`
+                          : item.horario}
+                      </Text>
+                    </View>
                   </View>
+
+                  {/* Botão de navegação do lado direito */}
+                  <TouchableOpacity
+                    style={styles.navigationButton}
+                    onPress={(e) => {
+                      e.stopPropagation(); // Previne o click no card
+                      handleNavigateToLocation(item);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name="navigate"
+                      size={16}
+                      color={COLORS.iconWhite}
+                    />
+                    <Text style={styles.navigationButtonText}>Mapa</Text>
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             </Animated.View>
@@ -1080,7 +1273,7 @@ export default function HomeScreen({ navigation }) {
         >
           <View style={styles.newsButtonContent}>
             <View style={styles.newsIconContainer}>
-              <Ionicons name="newspaper" size={26} color={COLORS.iconWhite} />
+              <Ionicons name="newspaper" size={14} color={COLORS.iconWhite} />
             </View>
             <View style={styles.newsTextContainer}>
               <Text style={styles.newsButtonTitle}>Notícias</Text>
@@ -1088,7 +1281,7 @@ export default function HomeScreen({ navigation }) {
             </View>
             <Ionicons
               name="chevron-forward"
-              size={20}
+              size={18}
               color={COLORS.iconWhite}
               style={styles.newsArrow}
             />
@@ -1223,57 +1416,64 @@ const styles = StyleSheet.create({
   // Rodapé
   footerContainer: {
     backgroundColor: COLORS.cardBackground,
-    paddingHorizontal: 0,
-    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
     borderTopWidth: 1,
     borderTopColor: COLORS.primaryLight,
     ...SHADOWS.medium,
     elevation: 8,
     width: "100%",
+    alignItems: "center",
   },
   newsButton: {
     backgroundColor: COLORS.primary,
-    borderRadius: 0,
-    paddingVertical: SPACING.lg,
-    paddingHorizontal: SPACING.xl,
-    elevation: 0,
-    borderWidth: 0,
-    width: "100%",
-    minHeight: 70,
+    borderRadius: 16,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    elevation: 4,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    width: "90%",
+    maxWidth: 300,
+    minHeight: 56,
   },
   newsButtonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: SPACING.sm,
+    justifyContent: "center",
+    paddingVertical: SPACING.xs,
   },
   newsIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: SPACING.lg,
+    marginRight: SPACING.md,
   },
   newsTextContainer: {
     flex: 1,
-    marginLeft: SPACING.sm,
+    alignItems: "flex-start",
   },
   newsButtonTitle: {
     ...TEXT_STYLES.title,
     color: COLORS.iconWhite,
-    fontWeight: "700",
-    fontSize: 18,
+    fontWeight: "600",
+    fontSize: 16,
+    marginBottom: 2,
   },
   newsButtonSubtitle: {
     ...TEXT_STYLES.body,
-    color: "rgba(255, 255, 255, 0.9)",
+    color: "rgba(255, 255, 255, 0.85)",
     fontWeight: "400",
-    marginTop: 2,
+    fontSize: 12,
   },
   newsArrow: {
-    opacity: 0.8,
+    opacity: 0.9,
+    marginLeft: SPACING.sm,
   },
 
   // Cards das unidades
@@ -1290,6 +1490,14 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "stretch",
+    justifyContent: "space-between",
+  },
+  cardMainContent: {
+    flex: 1,
+    paddingRight: SPACING.sm,
+    justifyContent: "center",
   },
   cardTitle: {
     ...TEXT_STYLES.cardTitle,
@@ -1310,12 +1518,41 @@ const styles = StyleSheet.create({
     marginLeft: SPACING.xs,
     fontWeight: "bold",
   },
+  gpsIndicator: {
+    marginLeft: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   cardHorario: {
     ...TEXT_STYLES.timeText,
     marginLeft: SPACING.xs,
     color: COLORS.textSecondary,
     fontSize: FONT_SIZES.md,
     fontWeight: "normal",
+  },
+
+  // Botão de navegação no card
+  navigationButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingHorizontal: SPACING.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 3,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    minWidth: 80,
+    flex: 0,
+    alignSelf: "stretch",
+  },
+  navigationButtonText: {
+    color: COLORS.iconWhite,
+    fontSize: FONT_SIZES.sm,
+    fontWeight: "600",
+    marginLeft: SPACING.xs,
   },
 
   // Estado vazio

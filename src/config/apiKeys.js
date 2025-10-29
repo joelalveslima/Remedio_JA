@@ -1,14 +1,9 @@
-/**
- * Configurações de API Keys e endpoints externos
- *
- * Este arquivo contém as configurações para serviços externos como Google Cloud Vision API
- * Para uso em produção, configure as variáveis de ambiente adequadas
- */
-
 // Configuração do Google Cloud Vision API
 export const GOOGLE_CLOUD_CONFIG = {
   // API Key do Google Cloud Vision (deve ser configurada via variável de ambiente)
-  API_KEY: process.env.EXPO_PUBLIC_GOOGLE_CLOUD_API_KEY || "",
+  API_KEY:
+    process.env.EXPO_PUBLIC_GOOGLE_CLOUD_API_KEY ||
+    "AIzaSyApfmpzj5p240awQ3CuaUmzwwfZoWnW7VE", // Nova chave API renovada
 
   // URL da API do Google Cloud Vision
   VISION_API_URL: "https://vision.googleapis.com/v1/images:annotate",
@@ -62,6 +57,17 @@ export const APP_CONFIG = {
       "Losartana",
       "Sinvastatina",
       "Atenolol",
+      "Cetoprofeno",
+      "Azitromicina",
+      "Diclofenaco",
+    ],
+
+    // Padrões regex para identificar medicamentos no texto OCR
+    MEDICINE_PATTERNS: [
+      /\b[A-Z][a-z]{4,}(?:ol|ina|ano|ato|eno|feno)\b/g, // Terminações comuns de medicamentos (mínimo 5 letras)
+      /\b[A-Z][a-z]{3,}\s+(?=\d+\s?mg)/gi, // Nome seguido de dosagem (captura o nome)
+      /\b(?:ceto|amoxi|dipir|ibupro|lorata|omepr|metfor|losar)[a-z]+/gi, // Prefixos conhecidos
+      /\b[A-Z][a-z]{5,}(?<!mg|ml|comp|caps)\b/g, // Palavras longas que não sejam unidades
     ],
   },
 
