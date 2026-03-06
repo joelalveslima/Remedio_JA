@@ -1080,56 +1080,30 @@ export default function HomeScreen({ navigation }) {
                   style={styles.welcomeIcon}
                 />
                 <Text style={styles.welcomeTitle}>
-                  Bem-vindo ao Remédio JA!
+                  Bem-vindo ao Remédio Já!
                 </Text>
                 <Text style={styles.welcomeSubtitle}>
-                  Encontre medicamentos disponíveis nas unidades de saúde da sua
-                  região
+                  Otimizando o Acesso a Medicamentos em Postos de Saúde
                 </Text>
               </View>
 
-              {/* Cards informativos */}
-              <View style={styles.infoCardsContainer}>
-                <View style={styles.infoCard}>
-                  <Ionicons name="search" size={24} color={COLORS.primary} />
-                  <Text style={styles.infoCardTitle}>Como Pesquisar</Text>
-                  <Text style={styles.infoCardText}>
-                    Digite o nome do medicamento ou use a câmera para escanear a
-                    receita
-                  </Text>
-                </View>
-
-                <View style={styles.infoCard}>
-                  <Ionicons name="location" size={24} color={COLORS.primary} />
-                  <Text style={styles.infoCardTitle}>Localização</Text>
-                  <Text style={styles.infoCardText}>
-                    Ative o GPS para encontrar unidades próximas a você
-                  </Text>
-                </View>
-
-                <View style={styles.infoCard}>
-                  <Ionicons name="time" size={24} color={COLORS.primary} />
-                  <Text style={styles.infoCardTitle}>Horários</Text>
-                  <Text style={styles.infoCardText}>
-                    Confira os horários de funcionamento antes de se deslocar
-                  </Text>
-                </View>
-              </View>
-
-              {/* Dicas úteis */}
-              <View style={styles.tipsContainer}>
-                <Text style={styles.tipsTitle}>💡 Dicas Importantes</Text>
-                <Text style={styles.tipsText}>
-                  • Leve sempre um documento de identidade
+              {/* Card único com informações e dicas */}
+              <View style={styles.infoCardUnified}>
+                <Text style={styles.infoCardUnifiedTitle}>
+                  📋 Como usar o Remédio Já
                 </Text>
-                <Text style={styles.tipsText}>
-                  • Traga a receita médica original
-                </Text>
-                <Text style={styles.tipsText}>
-                  • Verifique a validade da receita
-                </Text>
-                <Text style={styles.tipsText}>
-                  • Consulte os horários de funcionamento
+                <Text style={styles.infoCardUnifiedText}>
+                  🔍 <Text style={styles.infoCardBold}>Como Pesquisar:</Text>{" "}
+                  Digite o nome do medicamento ou use a câmera tira a foto da
+                  caixa do medicamento{"\n\n"}
+                  📍 <Text style={styles.infoCardBold}>Localização:</Text> Ative
+                  o GPS para encontrar unidades próximas a você{"\n\n"}
+                  🕒 <Text style={styles.infoCardBold}>Horários:</Text> Confira
+                  os horários de funcionamento antes de se deslocar{"\n\n"}
+                  💡 <Text style={styles.infoCardBold}>Dicas Importantes:</Text>
+                  {"\n"}• Leve sempre um documento de identidade{"\n"}• Traga a
+                  receita médica original{"\n"}• Verifique a validade da receita
+                  {"\n"}• Consulte os horários de funcionamento
                 </Text>
               </View>
             </View>
@@ -1419,9 +1393,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
     borderTopWidth: 1,
-    borderTopColor: COLORS.primaryLight,
-    ...SHADOWS.medium,
-    elevation: 8,
+    borderTopColor: COLORS.border, // Mudou de primaryLight para border (mais sutil)
+    borderTopStyle: "solid",
     width: "100%",
     alignItems: "center",
   },
@@ -1637,6 +1610,37 @@ const styles = StyleSheet.create({
     marginTop: -SPACING.xs,
   },
 
+  // Card unificado com informações e dicas
+  infoCardUnified: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: 16,
+    padding: SPACING.lg,
+    marginBottom: SPACING.xl,
+    ...SHADOWS.light,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+  },
+  infoCardUnifiedTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontFamily: FONTS.bold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.md,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  infoCardUnifiedText: {
+    fontSize: FONT_SIZES.sm,
+    fontFamily: FONTS.regular,
+    color: COLORS.textSecondary,
+    lineHeight: 22,
+  },
+  infoCardBold: {
+    fontWeight: "600",
+    color: COLORS.textPrimary,
+  },
+
   // Dicas úteis
   tipsContainer: {
     backgroundColor: COLORS.cardBackground,
@@ -1659,8 +1663,8 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     fontFamily: FONTS.regular,
     color: COLORS.textSecondary,
-    lineHeight: 20,
-    marginBottom: SPACING.xs,
+    lineHeight: 22, // Aumentado para melhor legibilidade
+    // Removido marginBottom para texto único
   },
 
   // Novos estilos para indicadores de status da API
