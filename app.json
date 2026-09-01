@@ -27,17 +27,9 @@
         "CAMERA",
         "WRITE_EXTERNAL_STORAGE",
         "READ_EXTERNAL_STORAGE"
-      ],
-      "statusBar": {
-        "backgroundColor": "#3F8B6E",
-        "barStyle": "light-content",
-        "translucent": true
-      }
+      ]
     },
     "ios": {
-      "statusBar": {
-        "barStyle": "light-content"
-      },
       "bundleIdentifier": "com.anonymous.remedioja"
     },
     "web": {
