@@ -1,0 +1,166 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.expo-shared/
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+
+# Metro
+.metro-health-check*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Editor directories and files
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables and sensitive data
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# API Keys e configurações sensíveis (manter apiConfig.js para configurações base)
+src/config/secrets.js
+src/config/keys.js
+src/config/credentials.js
+src/config/production.js
+src/config/staging.js
+*.config.js.local
+config/local.js
+config/production.js
+config/staging.js
+
+# Google Cloud API Keys (quando configuradas via arquivo)
+src/config/googleCloud.js
+src/config/firebase-config.js
+
+# Certificados e chaves privadas
+*.pem
+*.key
+*.p12
+*.p8
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+*.certSigningRequest
+*.cer
+*.crt
+*.der
+
+# Dados sensíveis específicos do projeto
+src/data/sensitive/
+backup/
+exports/
+logs/
+*.log
+*.log.*
+
+# Builds e outputs
+build/
+dist/
+out/
+*.tgz
+*.tar.gz
+
+# APK e builds mobile
+*.apk
+*.aab
+*.ipa
+
+# Cache e arquivos temporários
+.cache/
+*.cache
+tmp/
+temp/
+.npm
+.eslintcache
+.nyc_output
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Yarn
+.yarn-integrity
+
+# Firebase
+firebase-debug.log
+.firebase/
+
+# Sentry
+.sentryclirc
+
+# OS generated files
+.DS_Store?
+._*
+
+# Documentação temporária e rascunhos (manter arquivos finais de documentação)
+*_TEMP.md
+*_DRAFT.md
+*_BACKUP.md
+docs/temp/
+docs/drafts/
+
+# Arquivos de desenvolvimento local
+src/examples/local.js
+src/examples/test.js
+src/config/local-*.js
+
+# Não ignorar arquivos importantes de configuração e documentação
+!src/config/apiConfig.js
+!src/config/apiKeys.js
+!src/examples/apiExamples.js
+!*.md
+!README.md
+!TECNOLOGIAS.md
+
+
