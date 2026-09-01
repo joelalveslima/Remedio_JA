@@ -289,7 +289,11 @@ export default function MapScreen({ navigation, route }) {
                   <Text
                     style={[
                       styles.unitStatus,
-                      { color: item.disponivel ? "#21796A" : "#B00020" },
+                      {
+                        color: item.disponivel
+                          ? COLORS.available
+                          : COLORS.unavailable,
+                      },
                     ]}
                   >
                     {item.remedio ? `${item.remedio} - ` : ""}
@@ -328,13 +332,19 @@ export default function MapScreen({ navigation, route }) {
           <View style={styles.legendContainer}>
             <View style={styles.legendItem}>
               <View
-                style={[styles.legendDot, { backgroundColor: "#21796A" }]}
+                style={[
+                  styles.legendDot,
+                  { backgroundColor: COLORS.available },
+                ]}
               />
               <Text style={styles.legendText}>{texts.available}</Text>
             </View>
             <View style={styles.legendItem}>
               <View
-                style={[styles.legendDot, { backgroundColor: "#B00020" }]}
+                style={[
+                  styles.legendDot,
+                  { backgroundColor: COLORS.unavailable },
+                ]}
               />
               <Text style={styles.legendText}>{texts.unavailable}</Text>
             </View>

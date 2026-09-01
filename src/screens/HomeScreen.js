@@ -351,31 +351,31 @@ export default function HomeScreen({ navigation }) {
         return {
           text: texts.verifyingLocation,
           icon: "radio-button-on",
-          color: "#21796A",
+          color: COLORS.primary,
         };
       case "ativa":
         return {
           text: texts.gpsActive,
           icon: "checkmark-circle",
-          color: "#4CAF50",
+          color: COLORS.success,
         };
       case "inativa":
         return {
           text: texts.gpsDeactivated,
           icon: "close-circle",
-          color: "#FF9800",
+          color: COLORS.warning,
         };
       case "negada":
         return {
           text: texts.gpsDeactivated,
           icon: "alert-circle",
-          color: "#FF9800",
+          color: COLORS.warning,
         };
       default:
         return {
           text: texts.gpsDeactivated,
           icon: "help-circle",
-          color: "#888",
+          color: COLORS.textLight,
         };
     }
   };
@@ -887,23 +887,47 @@ export default function HomeScreen({ navigation }) {
 
       {/* Header */}
       <View style={styles.header}>
-        <Ionicons
-          name="medical"
-          size={40}
-          color={COLORS.iconWhite}
-          style={{ marginRight: 10 }}
-        />
-        <View style={styles.headerTitleContainer}>
-          <Text
-            style={styles.headerTitle}
-            numberOfLines={1}
-            adjustsFontSizeToFit={true}
-            minimumFontScale={0.8}
-          >
-            {texts.appName}
-          </Text>
+        <View pointerEvents="none" style={styles.headerPattern}>
+          <Ionicons
+            name="medkit-outline"
+            size={74}
+            color={COLORS.textWhite}
+            style={styles.headerPatternTop}
+          />
+          <Ionicons
+            name="location-outline"
+            size={52}
+            color={COLORS.textWhite}
+            style={styles.headerPatternBottom}
+          />
+          <Ionicons
+            name="heart-outline"
+            size={34}
+            color={COLORS.textWhite}
+            style={styles.headerPatternSide}
+          />
         </View>
-        <View style={{ width: 50 }} />
+        <View style={styles.headerTitleContainer}>
+          <View style={styles.brandMark}>
+            <Ionicons
+              name="medical-outline"
+              size={30}
+              color={COLORS.textWhite}
+            />
+          </View>
+          <View style={styles.brandTextContent}>
+            <Text style={styles.headerEyebrow}>SAÚDE NA SUA REGIÃO</Text>
+            <Text
+              style={styles.headerTitle}
+              numberOfLines={1}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.8}
+            >
+              {texts.appName}
+            </Text>
+            <Text style={styles.headerSubtitle}>{texts.appSubtitle}</Text>
+          </View>
+        </View>
       </View>
 
       {/* Indicadores de status da API */}
@@ -1220,7 +1244,7 @@ export default function HomeScreen({ navigation }) {
         }}
       />
 
-      {/* Rodapé com botão de notícias */}
+      {/* Rodapé com atalhos */}
       <Animated.View
         style={[
           styles.footerContainer,
@@ -1230,37 +1254,38 @@ export default function HomeScreen({ navigation }) {
           },
         ]}
       >
-        <TouchableOpacity
-          style={styles.newsButton}
-          onPress={() => {
-            // Feedback haptic
-            if (Platform.OS === "ios") {
-              try {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              } catch (error) {
-                console.log("Haptics não disponível:", error);
-              }
-            }
-            navigation.navigate("Noticias");
-          }}
-          activeOpacity={0.9}
-        >
-          <View style={styles.newsButtonContent}>
-            <View style={styles.newsIconContainer}>
-              <Ionicons name="newspaper" size={14} color={COLORS.iconWhite} />
+        <View style={styles.footerShortcuts}>
+          <TouchableOpacity
+            style={styles.newsButton}
+            onPress={() => navigation.navigate("Noticias")}
+            activeOpacity={0.9}
+          >
+            <View style={styles.newsButtonContent}>
+              <View style={styles.newsIconContainer}>
+                <Ionicons name="newspaper-outline" size={19} color={COLORS.iconWhite} />
+              </View>
+              <View style={styles.newsTextContainer}>
+                <Text style={styles.newsButtonTitle}>Notícias</Text>
+                <Text style={styles.newsButtonSubtitle}>Saúde & Bem-estar</Text>
+              </View>
             </View>
-            <View style={styles.newsTextContainer}>
-              <Text style={styles.newsButtonTitle}>Notícias</Text>
-              <Text style={styles.newsButtonSubtitle}>Saúde & Bem-estar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.newsButton}
+            onPress={() => navigation.navigate("Postos")}
+            activeOpacity={0.9}
+          >
+            <View style={styles.newsButtonContent}>
+              <View style={styles.newsIconContainer}>
+                <Ionicons name="location-outline" size={19} color={COLORS.iconWhite} />
+              </View>
+              <View style={styles.newsTextContainer}>
+                <Text style={styles.newsButtonTitle}>Postos</Text>
+                <Text style={styles.newsButtonSubtitle}>Endereços e GPS</Text>
+              </View>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={COLORS.iconWhite}
-              style={styles.newsArrow}
-            />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       </Animated.View>
 
       {/* Modal moderno para seleção de origem da imagem */}
@@ -1284,6 +1309,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     // paddingTop será aplicado dinamicamente via safeAreaConfig
   },
+  footerShortcuts: {
+    alignItems: "stretch",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
 
   // Header
   header: {
@@ -1291,10 +1322,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.primary,
     width: "100%",
-    paddingVertical: SPACING.xxxl,
+    paddingVertical: SPACING.xxl,
     paddingHorizontal: SPACING.xl,
     borderBottomLeftRadius: SPACING.xxxl,
     borderBottomRightRadius: SPACING.xxxl,
+    overflow: "hidden",
     marginBottom: SPACING.lg,
     ...SHADOWS.heavy,
     // Margem top negativa para sobrepor a safe area quando necessário
@@ -1302,15 +1334,71 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...TEXT_STYLES.headerTitle,
-    textAlign: "center",
+    fontSize: FONT_SIZES.h1,
+    textAlign: "left",
     numberOfLines: 1,
     adjustsFontSizeToFit: true,
     minimumFontScale: 0.8,
   },
+  headerSubtitle: {
+    color: COLORS.textWhite,
+    fontFamily: FONTS.regular,
+    fontSize: FONT_SIZES.sm,
+    marginTop: 2,
+    opacity: 0.9,
+  },
   headerTitleContainer: {
-    flex: 1,
     alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
     justifyContent: "center",
+    zIndex: 1,
+  },
+  headerPattern: {
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  headerPatternTop: {
+    opacity: 0.1,
+    position: "absolute",
+    right: -14,
+    top: -22,
+  },
+  headerPatternBottom: {
+    bottom: -14,
+    left: 10,
+    opacity: 0.1,
+    position: "absolute",
+  },
+  headerPatternSide: {
+    opacity: 0.12,
+    position: "absolute",
+    right: 82,
+    top: 18,
+  },
+  brandMark: {
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.14)",
+    borderColor: "rgba(255, 255, 255, 0.25)",
+    borderRadius: 22,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: "center",
+    marginRight: SPACING.md,
+    width: 44,
+  },
+  brandTextContent: {
+    flex: 1,
+  },
+  headerEyebrow: {
+    color: COLORS.primaryLight,
+    fontFamily: FONTS.semiBold,
+    fontSize: FONT_SIZES.xs,
+    letterSpacing: 1,
+    marginBottom: 2,
   },
 
   // Busca
@@ -1401,41 +1489,38 @@ const styles = StyleSheet.create({
   newsButton: {
     backgroundColor: COLORS.primary,
     borderRadius: 16,
+    width: "48%",
     paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
+    paddingHorizontal: SPACING.xs,
     elevation: 4,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    width: "90%",
-    maxWidth: 300,
     minHeight: 56,
   },
   newsButtonContent: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: SPACING.xs,
   },
   newsIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "rgba(255, 255, 255, 0.08)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: SPACING.md,
+    marginBottom: SPACING.xs,
   },
   newsTextContainer: {
-    flex: 1,
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   newsButtonTitle: {
     ...TEXT_STYLES.title,
     color: COLORS.iconWhite,
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 2,
   },
   newsButtonSubtitle: {
@@ -1443,6 +1528,7 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.85)",
     fontWeight: "400",
     fontSize: 12,
+    textAlign: "center",
   },
   newsArrow: {
     opacity: 0.9,

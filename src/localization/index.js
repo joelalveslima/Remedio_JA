@@ -3,7 +3,8 @@
 // Textos padrão em português
 const texts = {
   // Header
-  appName: "REMÉDIO JÁ",
+  appName: "Remédio Já",
+  appSubtitle: "Medicamentos perto de você",
 
   // Status GPS
   verifyingLocation: "Verificando localização...",

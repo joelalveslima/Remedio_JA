@@ -20,6 +20,7 @@ import {
 } from "../constants/theme";
 import {
   getHealthNewsOrdered,
+  healthCampaigns,
   getCategoryColor,
   formatNewsDate,
 } from "../data/healthNews";
@@ -29,15 +30,73 @@ const { width } = Dimensions.get("window");
 
 export default function NewsScreen({ navigation }) {
   const [expandedNewsId, setExpandedNewsId] = useState(null);
+  const [expandedCampaignId, setExpandedCampaignId] = useState(null);
+  const [activeTab, setActiveTab] = useState("news");
+  const healthNewsData = getHealthNewsOrdered(10);
+  const currentMonth = new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+  }).format(new Date());
+  const currentMonthLabel =
+    currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
+  const currentCampaigns = healthCampaigns.filter(
+    (campaign) => campaign.month.toLocaleLowerCase("pt-BR") === currentMonth
+  );
 
   // Configuração responsiva para safe area
   const safeAreaConfig = getResponsiveConfig();
 
-  // Obter todas as notícias (não apenas as 3 primeiras)
-  const healthNewsData = getHealthNewsOrdered(10); // Mostra até 10 notícias
-
   const handleNewsPress = (newsId) => {
     setExpandedNewsId(expandedNewsId === newsId ? null : newsId);
+  };
+
+  const renderCampaignItem = (campaign) => {
+    const isExpanded = expandedCampaignId === campaign.id;
+
+    return (
+    <TouchableOpacity
+      key={campaign.id}
+      style={styles.campaignCard}
+      onPress={() =>
+        setExpandedCampaignId(isExpanded ? null : campaign.id)
+      }
+      activeOpacity={0.8}
+      accessibilityLabel={`${campaign.name}. ${
+        isExpanded ? "Ocultar explicação" : "Mostrar explicação"
+      }`}
+    >
+      <View style={[styles.campaignAccent, { backgroundColor: campaign.color }]} />
+      <View style={styles.campaignContent}>
+        <View style={styles.campaignHeader}>
+          <View
+            style={[
+              styles.monthBadge,
+              { backgroundColor: campaign.color },
+            ]}
+          >
+            <Text style={[styles.monthText, { color: campaign.textColor }]}>
+              {campaign.month}
+            </Text>
+          </View>
+          <Ionicons name="ribbon" size={30} color={campaign.color} />
+        </View>
+        <Text style={styles.campaignName}>{campaign.name}</Text>
+        <Text style={styles.campaignTheme}>{campaign.theme}</Text>
+        {isExpanded && (
+          <Text style={styles.campaignDescription}>{campaign.description}</Text>
+        )}
+        <View style={styles.campaignAction}>
+          <Text style={styles.campaignActionText}>
+            {isExpanded ? "Ocultar explicação" : "Sobre a campanha"}
+          </Text>
+          <Ionicons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={16}
+            color={COLORS.primary}
+          />
+        </View>
+      </View>
+    </TouchableOpacity>
+    );
   };
 
   const renderNewsItem = ({ item, index }) => {
@@ -132,24 +191,72 @@ export default function NewsScreen({ navigation }) {
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        
+        <View style={styles.tabBar}>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === "news" && styles.tabButtonActive]}
+            onPress={() => setActiveTab("news")}
+          >
+            <Ionicons
+              name="newspaper-outline"
+              size={18}
+              color={activeTab === "news" ? COLORS.textWhite : COLORS.primary}
+            />
+            <Text style={[styles.tabText, activeTab === "news" && styles.tabTextActive]}>
+              Notícias
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "campaigns" && styles.tabButtonActive,
+            ]}
+            onPress={() => setActiveTab("campaigns")}
+          >
+            <Ionicons
+              name="calendar-outline"
+              size={18}
+              color={
+                activeTab === "campaigns" ? COLORS.textWhite : COLORS.primary
+              }
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "campaigns" && styles.tabTextActive,
+              ]}
+            >
+              Campanhas
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Title Section */}
         <View style={styles.titleSection}>
-          <Text style={styles.sectionTitle}>Últimas Atualizações</Text>
+          <Text style={styles.sectionTitle}>
+            {activeTab === "news"
+              ? "Boletim de Saúde"
+              : `Campanhas de ${currentMonthLabel}`}
+          </Text>
           <Text style={styles.sectionSubtitle}>
-            Fique por dentro das campanhas e novidades da saúde pública
+            {activeTab === "news"
+              ? "Campanhas, orientações e avisos importantes para você"
+              : "Conheça a campanha de saúde deste mês"}
           </Text>
         </View>
 
-        {/* News List */}
-        <View style={styles.newsContainer}>
-          {healthNewsData.map((item, index) => (
-            <React.Fragment key={item.id}>
-              {renderNewsItem({ item, index })}
-            </React.Fragment>
-          ))}
-        </View>
+        {activeTab === "news" ? (
+          <View style={styles.newsContainer}>
+            {healthNewsData.map((item, index) => (
+              <React.Fragment key={item.id}>
+                {renderNewsItem({ item, index })}
+              </React.Fragment>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.campaignsContainer}>
+            {currentCampaigns.map(renderCampaignItem)}
+          </View>
+        )}
       </ScrollView>
 
       {/* Bottom Navigation moderno */}
@@ -233,6 +340,34 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: SPACING.lg,
   },
+  tabBar: {
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 8,
+    flexDirection: "row",
+    marginTop: SPACING.lg,
+    padding: SPACING.xs,
+  },
+  tabButton: {
+    alignItems: "center",
+    borderRadius: 6,
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    minHeight: 42,
+  },
+  tabButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  tabText: {
+    ...TEXT_STYLES.caption,
+    color: COLORS.primary,
+    fontSize: 14,
+    fontWeight: "700",
+    marginLeft: SPACING.sm,
+  },
+  tabTextActive: {
+    color: COLORS.textWhite,
+  },
 
  
   statsContainer: {
@@ -286,6 +421,74 @@ const styles = StyleSheet.create({
   // News Container
   newsContainer: {
     paddingBottom: SPACING.xxxl,
+  },
+  campaignsContainer: {
+    paddingBottom: SPACING.xxxl,
+  },
+  campaignCard: {
+    backgroundColor: COLORS.cardBackground,
+    borderColor: COLORS.borderLight,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: "row",
+    marginBottom: SPACING.md,
+    overflow: "hidden",
+    ...SHADOWS.light,
+  },
+  campaignAccent: {
+    width: 6,
+  },
+  campaignContent: {
+    flex: 1,
+    padding: SPACING.lg,
+  },
+  campaignHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.md,
+  },
+  monthBadge: {
+    borderRadius: 4,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+  },
+  monthText: {
+    ...TEXT_STYLES.caption,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  campaignName: {
+    ...TEXT_STYLES.subtitle,
+    color: COLORS.textPrimary,
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: SPACING.xs,
+  },
+  campaignTheme: {
+    ...TEXT_STYLES.caption,
+    color: COLORS.primaryDark,
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: SPACING.sm,
+  },
+  campaignDescription: {
+    ...TEXT_STYLES.body,
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  campaignAction: {
+    alignItems: "center",
+    flexDirection: "row",
+    marginTop: SPACING.md,
+  },
+  campaignActionText: {
+    ...TEXT_STYLES.caption,
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: "700",
+    marginRight: SPACING.xs,
   },
 
   // News Card modernizada

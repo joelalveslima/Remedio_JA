@@ -1,6 +1,6 @@
 {
   "name": "remedio_ja",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -8,6 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "generate-icons": "node generate-icons.js",
+    "generate-brand-assets": "node generate-brand-assets.js",
     "test-vision": "node test/google-vision-test.js"
   },
   "dependencies": {

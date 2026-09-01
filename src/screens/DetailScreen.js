@@ -161,20 +161,29 @@ export default function DetailScreen({ navigation, route }) {
     return (
       <View style={styles.infoCardDestaque}>
         <Text style={styles.sectionTitleDestaque}>
-          <Ionicons name="document-text" size={24} color={COLORS.primary} />{" "}
+          <Ionicons
+            name="document-text-outline"
+            size={24}
+            color={COLORS.primary}
+          />{" "}
           Documentos Necessários
         </Text>
 
         <Text style={styles.infoDescriptionDestaque}>
-          📄{" "}
+          <Ionicons name="card-outline" size={18} color={COLORS.primary} />{" "}
           <Text style={styles.documentoTitulo}>Documentos obrigatórios:</Text>
           {"\n"}• Documento de identidade com foto (RG, CNH ou Passaporte){"\n"}
           • Cartão SUS (Sistema Único de Saúde){"\n"}• CPF (pode estar no RG)
           {"\n\n"}
-          💊 <Text style={styles.documentoTitulo}>Para medicamentos:</Text>
+          <Ionicons name="medkit-outline" size={18} color={COLORS.primary} />{" "}
+          <Text style={styles.documentoTitulo}>Para medicamentos:</Text>
           {"\n"}• Receita médica (original e dentro da validade){"\n"}• Receita
           especial para medicamentos controlados{"\n\n"}
-          ⚠️{" "}
+          <Ionicons
+            name="alert-circle-outline"
+            size={18}
+            color={COLORS.warning}
+          />{" "}
           <Text style={styles.documentoTitulo}>Informações importantes:</Text>
           {"\n"}• Disponibilidade sujeita a alterações{"\n"}• Consulte horário
           de funcionamento{"\n"}• Ligue antes de se deslocar para confirmar
@@ -192,7 +201,11 @@ export default function DetailScreen({ navigation, route }) {
         <Text style={styles.unitName}>{unidade.nome}</Text>
 
         <View style={styles.infoRow}>
-          <Ionicons name="location" size={20} color={COLORS.iconLocation} />
+          <Ionicons
+            name="location-outline"
+            size={20}
+            color={COLORS.iconLocation}
+          />
           <Text style={styles.infoText}>
             {distanciaCalculada !== null
               ? `${distanciaCalculada} km`
@@ -203,7 +216,7 @@ export default function DetailScreen({ navigation, route }) {
         </View>
 
         <View style={styles.infoRow}>
-          <Ionicons name="time" size={20} color={COLORS.iconTime} />
+          <Ionicons name="time-outline" size={20} color={COLORS.iconTime} />
           <Text style={styles.infoText}>
             {typeof unidade.horario === "object"
               ? `${unidade.horario.semana.inicio} às ${unidade.horario.semana.fim}`
@@ -216,12 +229,20 @@ export default function DetailScreen({ navigation, route }) {
             style={styles.actionButton}
             onPress={handleOpenMaps}
           >
-            <Ionicons name="navigate" size={20} color={COLORS.iconPrimary} />
+            <Ionicons
+              name="navigate-outline"
+              size={20}
+              color={COLORS.iconPrimary}
+            />
             <Text style={styles.actionButtonText}>{texts.map}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
-            <Ionicons name="call" size={20} color={COLORS.iconPrimary} />
+            <Ionicons
+              name="call-outline"
+              size={20}
+              color={COLORS.iconPrimary}
+            />
             <Text style={styles.actionButtonText}>{texts.call}</Text>
           </TouchableOpacity>
         </View>
@@ -237,10 +258,18 @@ export default function DetailScreen({ navigation, route }) {
     return (
       <View style={styles.footerContainer}>
         <View style={styles.infoCard}>
-          <Text style={styles.infoDescription}>
-            💡 Para informações sobre medicamentos específicos disponíveis,
-            entre em contato diretamente com a unidade.
-          </Text>
+          <View style={styles.footerInfoContent}>
+            <Ionicons
+              name="information-circle-outline"
+              size={22}
+              color={COLORS.info}
+              style={styles.footerInfoIcon}
+            />
+            <Text style={styles.infoDescription}>
+              Para informações sobre medicamentos específicos disponíveis,
+              entre em contato diretamente com a unidade.
+            </Text>
+          </View>
         </View>
       </View>
     );
@@ -320,7 +349,7 @@ export default function DetailScreen({ navigation, route }) {
           activeOpacity={0.8}
         >
           <View style={styles.buttonContent}>
-            <Ionicons name="home" size={22} color={COLORS.iconWhite} />
+            <Ionicons name="home-outline" size={22} color={COLORS.iconWhite} />
             <Text style={styles.buttonText}>{texts.home}</Text>
           </View>
         </TouchableOpacity>
@@ -490,7 +519,15 @@ const styles = StyleSheet.create({
   },
   infoDescription: {
     ...TEXT_STYLES.descriptionText,
+    flex: 1,
     lineHeight: 20,
+  },
+  footerInfoContent: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+  },
+  footerInfoIcon: {
+    marginRight: SPACING.sm,
   },
 
   // Card de informações importantes em destaque

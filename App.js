@@ -4,7 +4,6 @@ import { NavigationContainer } from "@react-navigation/native";
 import {
   createStackNavigator,
   CardStyleInterpolators,
-  TransitionPresets,
 } from "@react-navigation/stack";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
@@ -13,6 +12,7 @@ import { Platform, Easing } from "react-native";
 import HomeScreen from "./src/screens/HomeScreen";
 import DetailScreen from "./src/screens/DetailScreen";
 import NewsScreen from "./src/screens/NewsScreen";
+import HealthUnitsScreen from "./src/screens/HealthUnitsScreen";
 import { COLORS } from "./src/constants/theme";
 
 // Previne que a splash screen seja escondida automaticamente
@@ -28,42 +28,22 @@ const customTransition = {
     open: {
       animation: "timing",
       config: {
-        duration: 300,
-        easing: Easing.out(Easing.poly(4)),
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
       },
     },
     close: {
       animation: "timing",
       config: {
-        duration: 250,
-        easing: Easing.in(Easing.poly(4)),
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
       },
     },
   },
-  cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-};
-
-// Transição para modal (para DetailScreen)
-const modalTransition = {
-  gestureEnabled: true,
-  gestureDirection: "vertical",
-  transitionSpec: {
-    open: {
-      animation: "timing",
-      config: {
-        duration: 350,
-        easing: Easing.out(Easing.bezier(0.25, 0.46, 0.45, 0.94)),
-      },
-    },
-    close: {
-      animation: "timing",
-      config: {
-        duration: 300,
-        easing: Easing.in(Easing.bezier(0.25, 0.46, 0.45, 0.94)),
-      },
-    },
-  },
-  cardStyleInterpolator: CardStyleInterpolators.forModalPresentationIOS,
+  cardStyleInterpolator:
+    Platform.OS === "android"
+      ? CardStyleInterpolators.forFadeFromBottomAndroid
+      : CardStyleInterpolators.forHorizontalIOS,
 };
 
 export default function App() {
@@ -97,13 +77,20 @@ export default function App() {
           name="Detalhes"
           component={DetailScreen}
           options={{
-            ...modalTransition,
-            presentation: "modal",
+            ...customTransition,
+            gestureEnabled: false,
           }}
         />
         <Stack.Screen
           name="Noticias"
           component={NewsScreen}
+          options={{
+            ...customTransition,
+          }}
+        />
+        <Stack.Screen
+          name="Postos"
+          component={HealthUnitsScreen}
           options={{
             ...customTransition,
           }}

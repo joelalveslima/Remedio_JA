@@ -2,44 +2,44 @@
 import { Platform } from "react-native";
 
 export const COLORS = {
-  // Cores principais - Mantidas
-  primary: "#009900",
-  primaryLight: "#E8F5E8", // Mais suave e harmoniosa
-  primaryDark: "#006600", // Versão mais escura do verde principal
+  // Cores principais
+  primary: "#3F8B6E",
+  primaryLight: "#E1F1E9",
+  primaryDark: "#27634D",
 
-  // Cores de status - Melhoradas
-  success: "#4CAF50",
-  error: "#F44336",
-  warning: "#FF9800",
-  info: "#2196F3",
+  // Cores de status
+  success: "#3F8B6E",
+  error: "#B84A4A",
+  warning: "#B57A1A",
+  info: "#4B7F8F",
 
   // Cores de texto - Otimizadas para legibilidade
-  textPrimary: "#212121", // Preto mais suave
-  textSecondary: "#757575", // Cinza balanceado
-  textLight: "#9E9E9E", // Cinza claro consistente
+  textPrimary: "#25352E",
+  textSecondary: "#65746D",
+  textLight: "#8C9993",
   textWhite: "#FFFFFF",
 
   // Cores de fundo - Harmonizadas
-  background: "#FAFAFA", // Fundo mais limpo
+  background: "#F8FAF8",
   cardBackground: "#FFFFFF",
-  surfaceLight: "#F5F5F5", // Nova cor para superfícies leves
+  surfaceLight: "#F0F5F2",
 
   // Cores de ícones - Coordenadas com o tema
-  iconLocation: "#4CAF50", // Verde consistente
-  iconTime: "#FF9800", // Laranja para horário
-  iconPrimary: "#009900", // Usando a cor principal
-  iconSecondary: "#757575", // Consistente com textSecondary
+  iconLocation: "#3F8B6E",
+  iconTime: "#B57A1A",
+  iconPrimary: "#3F8B6E",
+  iconSecondary: "#65746D",
   iconWhite: "#FFFFFF",
-  iconActive: "#4CAF50", // Verde para estados ativos
+  iconActive: "#3F8B6E",
 
   // Cores de borda - Sutis e elegantes
-  border: "#E0E0E0",
-  borderLight: "#F0F0F0",
-  borderFocus: "#009900", // Verde principal para foco
+  border: "#D8E3DD",
+  borderLight: "#EAF0EC",
+  borderFocus: "#3F8B6E",
 
   // Cores de disponibilidade - Melhor contraste
-  available: "#4CAF50", // Verde mais amigável
-  unavailable: "#F44336", // Vermelho mais visível
+  available: "#3F8B6E",
+  unavailable: "#B84A4A",
 };
 
 export const FONTS = {
