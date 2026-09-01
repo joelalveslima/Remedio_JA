@@ -2,7 +2,7 @@
   "name": "remedio_ja",
   "version": "2.0.0",
   "main": "index.js",
-  "homepage": ".",
+  "homepage": "https://joelalveslima.github.io/Remedio_JA",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
