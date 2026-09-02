@@ -39,6 +39,9 @@
       "themeColor": "#3F8B6E",
       "backgroundColor": "#3F8B6E",
       "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "baseUrl": "/Remedio_JA"
     }
   }
 }
